@@ -1,0 +1,50 @@
+*.py[cod]
+__pycache__
+*.egg-info
+venv
+.coverage
+htmlcov
+*,cover
+.cache
+
+build 
+dist
+MANIFEST
+
+# Doc-related stuffs
+/docs/_build
+/docs/wpilib.rst
+/docs/wpilib
+/docs/wpilib.buttons.rst
+/docs/wpilib.buttons
+/docs/wpilib.command.rst
+/docs/wpilib.command
+/docs/wpilib.interfaces
+/docs/wpilib.interfaces.rst
+
+version.py
+
+# Eclipse project files
+.project
+.pydevproject
+.settings
+
+# Installer files
+/installer/pip_cache
+/installer/opkg_cache
+/installer/.installer_config
+
+/installer/win32/*.exe
+
+#PyCharm Project files
+*.iml
+.idea/*
+.pycharmproject
+
+#Java parser output
+lextab.py
+parser.out
+parsetab.py
+
+# Downloaded libHALAthena
+/hal-roborio/hal_impl/libHALAthena.so
