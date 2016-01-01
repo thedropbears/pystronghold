@@ -4,13 +4,14 @@ import wpilib
 from wpilib import command
 
 from subsystems.example_subsystem import ExampleSubsystem
+from subsystems import Chassis
 from commands.example_command import ExampleCommand
 from oi import OI
-
 
 class StrongholdRobot(wpilib.IterativeRobot):
 
     example_subsystem = ExampleSubsystem()
+    chassis = Chassis()
     oi = None
 
     def robotInit(self):
