@@ -4,12 +4,27 @@ from wpilib.command import Subsystem
 
 class Chassis(Subsystem):
 
+    def __init__(self):
+        # we want to create four swervemodules here
+        # the numbers here need to be replaced with constants from robotmap
+        #  A - D
+        #  |   |
+        #  B - C
+        _modules = [SwerveModule(1,2), SwerveModule(3,4), SwerveModule(5,6), SwerveModule(7,8)]
+
+
     #Put methods for controlling this subsystem here.
     # Call these from Commands.
 
     def initDefaultCommand(self):
         #Set the default command for a subsystem here.
         #setDefaultCommand(ExampleCommand())
+        pass
+
+    def drive(vX, vY, vZ, throttle):
+        pass
+
+    def zero_module_directions():
         pass
 
 
@@ -27,7 +42,7 @@ class SwerveModule():
 
         # Private members to store the setpoints
         self._speed = 0.0
-        self._direction = 0.0 
+        self._direction = 0.0
         # Always in radians. Right hand rule applies - Z is up!
         # Rescale values to the range [0, 2*pi)
 
