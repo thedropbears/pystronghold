@@ -2,6 +2,7 @@ pystronghold - FRC Team 4774's code for 2016
 ============================================
 
 [![Build Status](https://travis-ci.org/thedropbears/pystronghold.svg)](https://travis-ci.org/thedropbears/pystronghold)
+[![Coverage Status](https://coveralls.io/repos/thedropbears/pystronghold/badge.svg?branch=master&service=github)](https://coveralls.io/github/thedropbears/pystronghold?branch=master)
 
 Contributing
 ============
