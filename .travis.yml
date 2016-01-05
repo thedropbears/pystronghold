@@ -1,0 +1,11 @@
+language: python
+python:
+  - "3.4"
+# command to install dependencies
+install:
+  - "pip install -r requirements.txt"
+# command to run tests
+script:
+  - python robot.py test
+notifications:
+  slack: frc-4774:gtsMx8XEC0U9v61da4RJd7fT
