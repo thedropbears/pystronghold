@@ -3,14 +3,14 @@
 import wpilib
 from wpilib import command
 
-from subsystems.example_subsystem import ExampleSubsystem
+#from subsystems.example_subsystem import ExampleSubsystem
 from subsystems import Chassis
-from commands.example_command import ExampleCommand
+#from commands.example_command import ExampleCommand
 from oi import OI
 
 class StrongholdRobot(wpilib.IterativeRobot):
 
-    example_subsystem = ExampleSubsystem()
+    #example_subsystem = ExampleSubsystem()
     chassis = Chassis()
     oi = None
 
@@ -21,7 +21,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         """
         self.oi = OI(self)
         #Create the command used for the autonomous period
-        self.autonomous_command = ExampleCommand(self)
+        #self.autonomous_command = ExampleCommand(self)
 
     def disabledInit(self):
         pass
@@ -32,7 +32,8 @@ class StrongholdRobot(wpilib.IterativeRobot):
 
     def autonomousInit(self):
         #Schedule the autonomous command
-        self.autonomous_command.start()
+        #self.autonomous_command.start()
+        pass
 
     def autonomousPeriodic(self):
         """This function is called periodically during autonomous."""

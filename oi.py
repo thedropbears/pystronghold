@@ -1,6 +1,16 @@
 import wpilib
 from wpilib import buttons
 
+from robot_map import RobotMap
+"""
+AXIS MAPPINGS we use these axis mappings, which are different from the wpilib ones
+      + Y
+        ^
+        |
++ X <---|--->
+        |
+        V
+"""
 
 class OI:
     """
@@ -10,6 +20,8 @@ class OI:
     
     def __init__(self, robot):
         self.robot = robot
+
+        self.gamepad = wpilib.Joystick(RobotMap.gamepad_port)
 
         #CREATING BUTTONS
         #One type of button is a joystick button which is any button on a joystick.
@@ -37,3 +49,32 @@ class OI:
         #Start the command when the button is released and let it run the command
         #until it is finished as determined by it's isFinished method.
         #button.whenReleased(ExampleCommand())
+
+    def getLeftStickX(): #get the x axis of the left side of the joystick
+        axis = self.gamepad.getAxis(RobotMap.gamepad_left_stick_y) # get the x axis of the left stick, which is considered by wpilib to be the y axis
+        axis = -axis # reverse the direciton of the axis to make it consistant with our mappings
+        if abs(axis) < deadzone:
+            axis = 0.0
+        return axis
+
+
+    def getLeftStickY(): #get the y axis of the left side of the joystick
+        axis = self.gamepad.getAxis(RobotMap.gamepad_left_stick_x) # get the y axis of the left stick, which is considered by wpilib to be the x axis
+        axis = -axis # reverse the direciton of the axis to make it consistant with our mappings
+        if abs(axis) < deadzone:
+            axis = 0.0
+        return axis
+
+    def getRightStickX(): #get the x axis of the right side of the joystick
+        axis = self.gamepad.getAxis(RobotMap.gamepad_right_stick_y) # get the x axis of the right stick, which is considered by wpilib to be the y axis
+        axis = -axis # reverse the direciton of the axis to make it consistant with our mappings
+        if abs(axis) < deadzone:
+            axis = 0.0
+        return axis
+
+    def getRightStickY(): #get the y axis of the right side of the joystick
+        axis = self.gamepad.getAxis(RobotMap.gamepad_left_stick_x) # get the y axis of the right stick, which is considered by wpilib to be the x axis
+        axis = -axis # reverse the direciton of the axis to make it consistant with our mappings
+        if abs(axis) < deadzone:
+            axis = 0.0
+        return axis
