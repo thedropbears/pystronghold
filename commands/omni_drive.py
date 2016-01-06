@@ -1,6 +1,6 @@
 from wpilib.command import Command, CommandGroup
 
-class TankDrive(Command):
+class OmniDrive(Command):
 
     def __init__(self, robot, name=None, timeout=None):
         """This is the constructor of the command, use this to declare subsystem dependencies"""
@@ -16,7 +16,10 @@ class TankDrive(Command):
 
     def execute(self):
         """Called repeatedly when this Command is scheduled to run"""
-        robot.chassis.drive(robot.oi.getLeftStickX(), robot.oi.getLeftStickY(), robot.oi.getRightStickY(), 1.0)
+        # our axis are different from the wpilib, which is why vx vy and vz are getting different axis to
+        # the stick axis
+        #                      vX                           vY                           vZ                   throttle
+        robot.chassis.drive(-robot.oi.getLeftStickY(), -robot.oi.getLeftStickX(), -robot.oi.getRightStickX(), 1.0)
 
     def isFinished(self):
         """This should return true when this command no longer needs to run execute()"""

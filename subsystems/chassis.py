@@ -3,6 +3,8 @@ from wpilib.command import Subsystem
 
 from robot_map import RobotMap
 
+from commands.omni_drive import OmniDrive
+
 class Chassis(Subsystem):
 
     def __init__(self):
@@ -11,8 +13,10 @@ class Chassis(Subsystem):
         #  A - D
         #  |   |
         #  B - C
-        self._modules = [SwerveModule(RobotMap.module_a_move_motor_id , RobotMap.module_a_rotation_motor_id ), SwerveModule(RobotMap.module_b_move_motor_id, RobotMap.module_b_rotation_motor_id),
-                SwerveModule(RobotMap.module_c_move_motor_id, RobotMap.module_c_rotation_motor_id), SwerveModule(RobotMap.module_d_move_motor_id, RobotMap.module_d_rotation_motor_id)]
+        self._modules = [SwerveModule(RobotMap.module_a_move_motor_id , RobotMap.module_a_rotation_motor_id ),
+                SwerveModule(RobotMap.module_b_move_motor_id, RobotMap.module_b_rotation_motor_id),
+                SwerveModule(RobotMap.module_c_move_motor_id, RobotMap.module_c_rotation_motor_id),
+                SwerveModule(RobotMap.module_d_move_motor_id, RobotMap.module_d_rotation_motor_id)]
 
 
     #Put methods for controlling this subsystem here.
@@ -20,7 +24,7 @@ class Chassis(Subsystem):
 
     def initDefaultCommand(self):
         #Set the default command for a subsystem here.
-        #setDefaultCommand(ExampleCommand())
+        setDefaultCommand(OmniDrive())
         pass
 
     def drive(self, vX, vY, vZ, throttle):
