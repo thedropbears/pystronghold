@@ -1,3 +1,4 @@
+import math
 
 class RobotMap:
     """
@@ -24,3 +25,24 @@ class RobotMap:
     module_c_rotation_motor_id = 5
     module_d_move_motor_id = 6
     module_d_rotation_motor_id = 7
+
+    module_rotation_counts_per_revolution = 497.0
+
+    TAU = math.pi*2.0
+
+    robot_width = 386.0 # mm
+    robot_length = 660.0 # mm
+
+    motor_dist = math.sqrt((robot_width/2)**2+(robot_length/2)**2) # distance of motors from the center of the robot
+
+    #                    x component                   y component
+    vz_components = ((robot_height/2) / motor_dist, (robot_width/2)/motor_dist) # multiply both by vz and the
+
+    # the number that you need to multiply the vz components by to get them in the appropriate directions
+    #                   vx   vy
+    motor_a_vz_scaling = (1, 1)
+    motor_b_vz_scaling = (-1, 1)
+    motor_c_vz_scaling = (-1, -1)
+    motor_d_vz_scaling = (1, -1)
+
+    module_angular_tol = 0.02 #approx 1 deg
