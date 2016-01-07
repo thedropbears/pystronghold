@@ -40,9 +40,9 @@ def test_swerve_steer():
     assert swerve._speed == -1.0
     assert abs(swerve._direction) < epsilon
 
-def test_chassis():
+def test_chassis(robot):
     epsilon = 0.01 # Tolerance for angular floating point errors (~0.05 degrees)
-    chassis = Chassis()
+    chassis = Chassis(robot)
 
     # vX is out the left side of the robot, vY is out of the front, vZ is upwards, so a +ve rotation is counter-clockwise
     #             vX   vY   vZ   throttle

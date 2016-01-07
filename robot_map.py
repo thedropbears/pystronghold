@@ -11,7 +11,9 @@ class RobotMap:
     # following variables to use with your drivetrain subsystem.
     # left_motor = 1
     # right_motor = 2
-    gamepad_port = 0
+
+    joystick_port = 0
+    gamepad_port = 1
     deadzone = 0.05
 
     module_a_move_motor_id = 0

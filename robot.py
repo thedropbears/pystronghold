@@ -8,11 +8,11 @@ from subsystems import Chassis
 #from commands.example_command import ExampleCommand
 from oi import OI
 
+import logging
+
 class StrongholdRobot(wpilib.IterativeRobot):
 
     #example_subsystem = ExampleSubsystem()
-    chassis = Chassis()
-    oi = None
 
     def robotInit(self):
         """
@@ -20,6 +20,8 @@ class StrongholdRobot(wpilib.IterativeRobot):
         should be used for any initialization code.
         """
         self.oi = OI(self)
+        self.chassis = Chassis(self)
+        self.logger = logging.getLogger("robotpy")
         #Create the command used for the autonomous period
         #self.autonomous_command = ExampleCommand(self)
 

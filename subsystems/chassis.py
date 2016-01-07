@@ -7,7 +7,11 @@ from commands.omni_drive import OmniDrive
 
 class Chassis(Subsystem):
 
-    def __init__(self):
+    def __init__(self, robot):
+
+        super().__init__()
+
+        self.robot = robot
         # we want to create four swervemodules here
         # the numbers here need to be replaced with constants from robotmap
         #  A - D
@@ -24,13 +28,9 @@ class Chassis(Subsystem):
 
     def initDefaultCommand(self):
         #Set the default command for a subsystem here.
-        setDefaultCommand(OmniDrive())
-        pass
+        self.setDefaultCommand(OmniDrive(self.robot))
 
     def drive(self, vX, vY, vZ, throttle):
-        pass
-
-    def zero_module_directions(self):
         pass
 
 

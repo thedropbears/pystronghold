@@ -7,19 +7,19 @@ class OmniDrive(Command):
         #Use self.requires() here to declare subsystem dependencies
         #eg. self.requires(chassis)
         super().__init__(name, timeout)
-        self.requires(robot.chassis)
         self.robot = robot
+        self.requires(self.robot.chassis)
 
     def initialize(self):
         """Called just before this Command runs the first time"""
-        robot.drive(0.0, 0.0, 0.0, 0.0) # just to be safe
+        self.robot.chassis.drive(0.0, 0.0, 0.0, 0.0) # just to be safe
 
     def execute(self):
         """Called repeatedly when this Command is scheduled to run"""
         # our axis are different from the wpilib, which is why vx vy and vz are getting different axis to
         # the stick axis
-        #                      vX                           vY                           vZ                   throttle
-        robot.chassis.drive(-robot.oi.getLeftStickY(), -robot.oi.getLeftStickX(), -robot.oi.getRightStickX(), 1.0)
+        #                      vX                           vY                           vZ                        throttle
+        self.robot.chassis.drive(self.robot.oi.getJoystickY(), self.robot.oi.getJoystickX(), self.robot.oi.getJoystickZ(), 1.0)
 
     def isFinished(self):
         """This should return true when this command no longer needs to run execute()"""
@@ -27,7 +27,7 @@ class OmniDrive(Command):
 
     def end(self):
         """Called once after isFinished returns true"""
-        robot.chassis.drive(0.0, 0.0, 0.0, 0.0)
+        self.robot.chassis.drive(0.0, 0.0, 0.0, 0.0)
 
     def interrupted(self):
         """Called when another command which requires one or more of the same example_subsystem is scheduled to run"""

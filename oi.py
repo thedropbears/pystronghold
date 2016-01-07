@@ -31,6 +31,7 @@ class OI:
     def __init__(self, robot):
         self.robot = robot
 
+        self.joystick = wpilib.Joystick(RobotMap.joystick_port)
         self.gamepad = wpilib.Joystick(RobotMap.gamepad_port)
 
         #CREATING BUTTONS
@@ -60,27 +61,43 @@ class OI:
         #until it is finished as determined by it's isFinished method.
         #button.whenReleased(ExampleCommand())
 
-    def getLeftStickX(): #get the x axis of the left side of the joystick
+    def getLeftStickX(self): #get the x axis of the left side of the joystick
         axis = self.gamepad.getAxis(RobotMap.gamepad_left_stick_x)
-        if abs(axis) < deadzone:
-            axis = 0.0
+        axis=self.applyDeadzone(axis)
         return axis
 
 
-    def getLeftStickY(): #get the y axis of the left side of the joystick
+    def getLeftStickY(self): #get the y axis of the left side of the joystick
         axis = self.gamepad.getAxis(RobotMap.gamepad_left_stick_y)
-        if abs(axis) < deadzone:
-            axis = 0.0
+        axis=self.applyDeadzone(axis)
         return axis
 
-    def getRightStickX(): #get the x axis of the right side of the joystick
+    def getRightStickX(self): #get the x axis of the right side of the joystick
         axis = self.gamepad.getAxis(RobotMap.gamepad_right_stick_x)
-        if abs(axis) < deadzone:
-            axis = 0.0
+        axis=self.applyDeadzone(axis)
         return axis
 
-    def getRightStickY(): #get the y axis of the right side of the joystick
+    def getRightStickY(self): #get the y axis of the right side of the joystick
         axis = self.gamepad.getAxis(RobotMap.gamepad_left_stick_y)
-        if abs(axis) < deadzone:
-            axis = 0.0
+        axis=self.applyDeadzone(axis)
+        return axis
+
+    def applyDeadzone(self, axis):
+        if abs(axis)<RobotMap.deadzone:
+            return 0.0
+        return axis
+
+    def getJoystickX(self):
+        axis = self.joystick.getX()
+        axis = self.applyDeadzone(axis)
+        return axis
+
+    def getJoystickY(self):
+        axis = self.joystick.getY()
+        axis = self.applyDeadzone(axis)
+        return axis
+
+    def getJoystickZ(self):
+        axis = self.joystick.getZ()
+        axis = self.applyDeadzone(axis)
         return axis
