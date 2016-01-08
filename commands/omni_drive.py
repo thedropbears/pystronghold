@@ -19,7 +19,7 @@ class OmniDrive(Command):
         # our axis are different from the wpilib, which is why vx vy and vz are getting different axis to
         # the stick axis
         #                      vX                           vY                           vZ                        throttle
-        self.robot.chassis.drive(self.robot.oi.getJoystickY(), self.robot.oi.getJoystickX(), self.robot.oi.getJoystickZ(), 1.0)
+        self.robot.chassis.drive(self.robot.oi.getJoystickY(), self.robot.oi.getJoystickX(), self.robot.oi.getJoystickZ(), self.robot.oi.getThrottle())
 
     def isFinished(self):
         """This should return true when this command no longer needs to run execute()"""
