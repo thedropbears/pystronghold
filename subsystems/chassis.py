@@ -114,8 +114,17 @@ class SwerveModule():
             else:
                 self._drive.set(self._speed*-1)
 
-    def isCloser(first, second, radians):
-        pass
+    def isCloser(self, first, second, radians):
+        """Returns True when the difference between first and radians is less than the difference between second and radians"""
+
+        first = self.wrapRadians(first)
+        second = self.wrapRadians(second)
+        radians = self.wrapRadians(radians)
+
+        first_diff = TAU/2 - abs(abs(first - radians) - TAU/2)
+        second_diff= TAU/2 - abs(abs(second - radians) - TAU/2)
+
+        return first_diff < second_diff
 
     def getSpeed(self):
         return self._speed
