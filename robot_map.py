@@ -17,22 +17,22 @@ class RobotMap:
     gamepad_port = 1
     deadzone = 0.05
 
-    module_a_move_motor_id = 0
-    module_a_rotation_motor_id = 1
-    module_b_move_motor_id = 2
-    module_b_rotation_motor_id = 3
-    module_c_move_motor_id = 4
-    module_c_rotation_motor_id = 5
-    module_d_move_motor_id = 6
-    module_d_rotation_motor_id = 7
+    module_b_move_motor_id = 4 #put in
+    module_b_rotation_motor_id = 7 # put in
+    module_c_move_motor_id = 2 # put in
+    module_c_rotation_motor_id = 6 # put in
+    module_d_move_motor_id = 1 # put in
+    module_d_rotation_motor_id = 5 # put in
+    module_a_move_motor_id = 3 # put in
+    module_a_rotation_motor_id = 8 # put in
 
-    module_rotation_counts_per_revolution = 497.0*(40.0/48.0)
+    module_rotation_counts_per_revolution = 497.0*(40.0/48.0) * 4.0
     module_rotation_volts_per_revolution = 3.3
 
     TAU = math.pi*2.0
 
-    robot_width = 648.0 # mm
-    robot_length = 386.394 # mm
+    robot_length = 648.0 # mm
+    robot_width = 386.394 # mm
 
     motor_dist = math.sqrt((robot_width/2)**2+(robot_length/2)**2) # distance of motors from the center of the robot
 
@@ -47,3 +47,5 @@ class RobotMap:
     motor_d_vz_scaling = (1, 1)
 
     module_angular_tol = 0.02 #approx 1 deg
+
+    steering_p = 6.0

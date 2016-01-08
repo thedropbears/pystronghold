@@ -101,3 +101,6 @@ class OI:
         axis = self.joystick.getZ()
         axis = self.applyDeadzone(axis)
         return axis
+
+    def getThrottle(self):
+        return (self.joystick.getThrottle()-1.0)/-2.0

@@ -23,10 +23,10 @@ class Chassis(Subsystem):
         #  A - D
         #  |   |
         #  B - C
-        self._modules = [SwerveModule(RobotMap.module_a_move_motor_id , RobotMap.module_a_rotation_motor_id ),
-                SwerveModule(RobotMap.module_b_move_motor_id, RobotMap.module_b_rotation_motor_id),
-                SwerveModule(RobotMap.module_c_move_motor_id, RobotMap.module_c_rotation_motor_id),
-                SwerveModule(RobotMap.module_d_move_motor_id, RobotMap.module_d_rotation_motor_id)]
+        self._modules = [SwerveModule(self, RobotMap.module_a_move_motor_id , RobotMap.module_a_rotation_motor_id, False),
+                SwerveModule(self, RobotMap.module_b_move_motor_id, RobotMap.module_b_rotation_motor_id, False),
+                SwerveModule(self, RobotMap.module_c_move_motor_id, RobotMap.module_c_rotation_motor_id, False, True),
+                SwerveModule(self, RobotMap.module_d_move_motor_id, RobotMap.module_d_rotation_motor_id, False, True)]
 
 
     #Put methods for controlling this subsystem here.
@@ -61,6 +61,7 @@ class Chassis(Subsystem):
 
         for polar_vector in polar:
             polar_vector[1]/= max_mag
+            polar_vector[1]*=throttle
 
         for module, polar_vector in zip(self._modules, polar):
             module.steer(polar_vector[0], polar_vector[1])
@@ -68,9 +69,11 @@ class Chassis(Subsystem):
 
 
 class SwerveModule():
-    def __init__(self, driveCanTalonId, steerCanTalonId, absoluteEncoder = True):
+    def __init__(self, chassis, driveCanTalonId, steerCanTalonId, absoluteEncoder = True, reverseDrive = False):
         # Initialise private motor controllers
+        self.chassis = chassis
         self._drive = CANTalon(driveCanTalonId)
+        self.reverse_drive = reverseDrive
         self._steer = CANTalon(steerCanTalonId)
         self.absoluteEncoder = absoluteEncoder
         # Set up the motor controllers
@@ -81,6 +84,8 @@ class SwerveModule():
         else:
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
+            self._steer.setPID(RobotMap.steering_p, 0.0, 0.0)
+            self._steer.setPosition(0.0)
 
         # Private members to store the setpoints
         self._speed = 0.0
@@ -100,6 +105,8 @@ class SwerveModule():
         delta = self.angularDisplacement(direction, opposite_direction, heading)
 
         self._direction += delta
+        if self.reverse_drive:
+            speed=-speed
         if abs(math.atan2(math.sin(self._direction), math.cos(self._direction))-direction)<math.pi/6.0:
             self._drive.set(speed)
             self._speed = speed
@@ -107,9 +114,9 @@ class SwerveModule():
             self._drive.set(-speed)
             self._speed = -speed
         if self.absoluteEncoder:
-            self._steer.set(self._direction*RobotMap.module_rotation_volts_per_revolution)
+            self._steer.set(self._direction/TAU*RobotMap.module_rotation_volts_per_revolution)
         else:
-            self._steer.set(self._direction*RobotMap.module_rotation_counts_per_revolution)
+            self._steer.set(self._direction/TAU*RobotMap.module_rotation_counts_per_revolution)
 
 
     def angularDisplacement(self, first, second, radians):
