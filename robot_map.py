@@ -37,14 +37,15 @@ class RobotMap:
     motor_dist = math.sqrt((robot_width/2)**2+(robot_length/2)**2) # distance of motors from the center of the robot
 
     #                    x component                   y component
-    vz_components = ((robot_length/2) / motor_dist, (robot_width/2)/motor_dist) # multiply both by vz and the
+    vz_sensitivity = 1.0
+    vz_components = ((robot_length/2) / motor_dist * vz_sensitivity, (robot_width/2)/motor_dist * vz_sensitivity) # multiply both by vz and the
 
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
-    motor_a_vz_scaling = (-1, 1)
-    motor_b_vz_scaling = (-1, -1)
-    motor_c_vz_scaling = (1, -1)
-    motor_d_vz_scaling = (1, 1)
+    motor_vz_scaling = [(-vz_components[0], vz_components[1]),
+                        (-vz_components[0], -vz_components[1]),
+                        (vz_components[0], -vz_components[1]),
+                        (vz_components[0], vz_components[1])]
 
     module_angular_tol = 0.02 #approx 1 deg
 
