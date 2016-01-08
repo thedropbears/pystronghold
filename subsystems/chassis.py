@@ -38,25 +38,29 @@ class Chassis(Subsystem):
 
     def drive(self, vX, vY, vZ, throttle):
 
-        mA_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_a_vz_scaling[0], vX+vZ*RobotMap.vz_components[1]*RobotMap.motor_a_vz_scaling[1]]
-        mB_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_b_vz_scaling[0], vX+vZ*RobotMap.vz_components[1]*RobotMap.motor_b_vz_scaling[1]]
-        mC_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_c_vz_scaling[0], vX+vZ*RobotMap.vz_components[1]*RobotMap.motor_c_vz_scaling[1]]
-        mD_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_d_vz_scaling[0], vX+vZ*RobotMap.vz_components[1]*RobotMap.motor_d_vz_scaling[1]]
+        mA_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_a_vz_scaling[0],
+                vY+vZ*RobotMap.vz_components[1]*RobotMap.motor_a_vz_scaling[1]]
+        mB_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_b_vz_scaling[0],
+                vY+vZ*RobotMap.vz_components[1]*RobotMap.motor_b_vz_scaling[1]]
+        mC_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_c_vz_scaling[0],
+                vY+vZ*RobotMap.vz_components[1]*RobotMap.motor_c_vz_scaling[1]]
+        mD_vector = [vX+vZ*RobotMap.vz_components[0]*RobotMap.motor_d_vz_scaling[0],
+                vY+vZ*RobotMap.vz_components[1]*RobotMap.motor_d_vz_scaling[1]]
 
         vectors = [mA_vector, mB_vector, mC_vector, mD_vector]
 
         # convert the vectors to pollar coordinates
         polar = []
-        max_magnitutde = 1.0
+        max_mag= 1.0
         for motor_vector in vectors:
             #                      direction                                                             magnitude
             polar_vector = [math.atan2(motor_vector[1], motor_vector[0]), math.sqrt(motor_vector[0]**2+motor_vector[1]**2)]
-            if abs(polar_vector[1]) > max_magnitude:
-                max_magnitude = polar_vector[1]
-            polar.apppend(polar_vector)
+            if abs(polar_vector[1]) > max_mag:
+                max_mag= polar_vector[1]
+            polar.append(polar_vector)
 
         for polar_vector in polar:
-            polar_vector[1]/= max_magnitude
+            polar_vector[1]/= max_mag
 
         for module, polar_vector in zip(self._modules, polar):
             module.steer(polar_vector[0], polar_vector[1])
@@ -72,13 +76,16 @@ class SwerveModule():
         # Set up the motor controllers
         # Different depending on whether we are using absolute encoders or not
         if absoluteEncoder:
-            pass
+            self._steer.changeControlMode(CANTalon.ControlMode.Position)
+            self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.AnalogEncoder)
         else:
-            self._steer.changeControlMode(CANTalon.controlMode.Position)
+            self._steer.changeControlMode(CANTalon.ControlMode.Position)
+            self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
 
         # Private members to store the setpoints
         self._speed = 0.0
         self._direction = 0.0
+        self._opposite_direction = TAU/2
         # Always in radians. Right hand rule applies - Z is up!
         # Rescale values to the range [0, 2*pi) m8 its tau not 2pi
 
@@ -86,45 +93,37 @@ class SwerveModule():
         # Set the speed and direction of the swerve module
         # Always choose the direction that minimises movement,
         # even if this means reversing the drive motor
-        self._direction = self.wrapRadians(direction)
-        self._speed = speed
+        direction = math.atan2(math.sin(direction), math.cos(direction)) # rescale to +/-pi
+        opposite_direction = math.atan2(math.sin(direction+TAU/2.0), math.cos(direction+TAU/2.0)) # rescale to +/-pi
+        heading = math.atan2(math.sin(self._direction), math.cos(self._direction))
 
-        ticks_to_set_to = 0.0 # the position that we want to set the steer motor to
+        delta = self.angularDisplacement(direction, opposite_direction, heading)
 
-        if not self.absoluteEncoder:
-            direction_ticks = self._direction/TAU * RobotMap.module_rotation_counts_per_revolution
-            opposite_direction_ticks = self.wrapRadians(self._direction-TAU/2)*RobotMap.module_rotation_counts_per_revolution
-            current_direction = self.wrapRadians(self._steer.get() / RobotMap.module_rotation_counts_per_revolution)
-            opposite_current_direction = self.wrapRadians(current_direction+TAU/2)
-            if not (current_direction - RobotMap.module_angular_tol < current_direction < current_direction + RobotMap.module_angular_tol or
-                    opposite_current_direction - RobotMap.module_angular_tol < opposite_current_direction < opposite_current_direction + RobotMap.module_angular_tol):
-                # we need to rotate to the correct direction
+        self._direction += delta
+        if abs(math.atan2(math.sin(self._direction), math.cos(self._direction))-direction)<math.pi/6.0:
+            self._drive.set(speed)
+            self._speed = speed
+        else:
+            self._drive.set(-speed)
+            self._speed = -speed
+        if self.absoluteEncoder:
+            self._steer.set(self._direction*RobotMap.module_rotation_volts_per_revolution)
+        else:
+            self._steer.set(self._direction*RobotMap.module_rotation_counts_per_revolution)
 
-                # first, find out which way we need to rotate to
-                if isCloser(current_direction, opposite_current_direction, self._direction):
-                    # if the current direction is closer than opposite it to the desired direction
-                    ticks_to_set_to = direction_ticks
-                else:
-                    ticks_to_set_to = oppostite_direction_ticks
 
-                # now we need to figure out where the closest amount of ticks are that we can use (e.g. if the module has rotated several times over,
-                # then we want our setpoint to be an equivalent number in the hundreds rather than somehing in the first rotation
-            elif current_direction - RobotMap.module_angular_tol < current_direction < current_direction + RobotMap.module_angular_tol:
-                self._drive.set(self._speed)
-            else:
-                self._drive.set(self._speed*-1)
+    def angularDisplacement(self, first, second, radians):
 
-    def isCloser(self, first, second, radians):
-        """Returns True when the difference between first and radians is less than the difference between second and radians"""
+        first_diff = first-radians
+        second_diff = second-radians
 
-        first = self.wrapRadians(first)
-        second = self.wrapRadians(second)
-        radians = self.wrapRadians(radians)
+        first_diff = math.atan2(math.sin(first_diff), math.cos(first_diff))
+        second_diff = math.atan2(math.sin(second_diff), math.cos(second_diff))
 
-        first_diff = TAU/2 - abs(abs(first - radians) - TAU/2)
-        second_diff= TAU/2 - abs(abs(second - radians) - TAU/2)
+        if abs(first_diff) < abs(second_diff):
+            return first_diff
+        return second_diff
 
-        return first_diff < second_diff
 
     def getSpeed(self):
         return self._speed
@@ -135,4 +134,4 @@ class SwerveModule():
     def wrapRadians(self, radians):
         if radians >= 0.0:
             return radians%TAU
-        return -radians%TAU
+        return TAU+(radians%TAU)
