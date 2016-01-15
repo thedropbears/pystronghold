@@ -31,14 +31,14 @@ class RobotMap:
 
     TAU = math.pi*2.0
 
-    robot_length = 648.0 # mm
+    robot_length= 648.0 # mm
     robot_width = 386.394 # mm
 
     motor_dist = math.sqrt((robot_width/2)**2+(robot_length/2)**2) # distance of motors from the center of the robot
 
     #                    x component                   y component
     vz_sensitivity = 1.0
-    vz_components = ((robot_length/2) / motor_dist * vz_sensitivity, (robot_width/2)/motor_dist * vz_sensitivity) # multiply both by vz and the
+    vz_components = ((robot_width/2) / motor_dist * vz_sensitivity, (robot_length/2)/motor_dist * vz_sensitivity) # multiply both by vz and the
 
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy

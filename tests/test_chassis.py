@@ -59,24 +59,24 @@ def test_chassis(robot):
         assert module._speed == 0.0
         assert abs(module._direction) <= epsilon # make sure that the module has been zeroed
     reset_chassis(chassis)
-    
+
     #test x axis
     chassis.drive(1.0, 0.0, 0.0, 1.0)
     for module in chassis._modules:
         assert module._direction == 0.0
     reset_chassis(chassis)
-    
+
     # test y axis
     chassis.drive(0.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
         # test weather each module is facing in the right direction
         assert TAU/4.0 == module._direction
     reset_chassis(chassis)
-    
-    vz_a = math.atan2(-RobotMap.robot_width, RobotMap.robot_length) #the angle that module a will go to if we spin on spot
-    vz_b = math.atan2(RobotMap.robot_width, RobotMap.robot_length)
-    vz_c = math.atan2(-RobotMap.robot_width, RobotMap.robot_length)
-    vz_d = math.atan2(RobotMap.robot_width, RobotMap.robot_length)
+
+    vz_a = math.atan2(-RobotMap.robot_length, RobotMap.robot_width) #the angle that module a will go to if we spin on spot
+    vz_b = math.atan2(RobotMap.robot_length, RobotMap.robot_width)
+    vz_c = math.atan2(-RobotMap.robot_length, RobotMap.robot_width)
+    vz_d = math.atan2(RobotMap.robot_length, RobotMap.robot_width)
 
     vectors = [vz_a, vz_b, vz_c, vz_d]
 
@@ -85,7 +85,7 @@ def test_chassis(robot):
     for module, vector in zip(chassis._modules, vectors):
         assert abs(module._direction - vector) < epsilon
     reset_chassis(chassis)
-    
+
     chassis.drive(1.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
         assert module._direction == TAU/8.0
