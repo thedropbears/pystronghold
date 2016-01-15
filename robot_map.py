@@ -15,7 +15,9 @@ class RobotMap:
 
     joystick_port = 0
     gamepad_port = 1
-    deadzone = 0.05
+    joystick_x_deadzone = 0.05
+    joystick_y_deadzone = 0.05
+    joystick_z_deadzone = 0.4
 
     module_b_move_motor_id = 4 #put in
     module_b_rotation_motor_id = 7 # put in
@@ -31,14 +33,14 @@ class RobotMap:
 
     TAU = math.pi*2.0
 
-    robot_length = 648.0 # mm
+    robot_length= 648.0 # mm
     robot_width = 386.394 # mm
 
     motor_dist = math.sqrt((robot_width/2)**2+(robot_length/2)**2) # distance of motors from the center of the robot
 
     #                    x component                   y component
     vz_sensitivity = 1.0
-    vz_components = ((robot_length/2) / motor_dist * vz_sensitivity, (robot_width/2)/motor_dist * vz_sensitivity) # multiply both by vz and the
+    vz_components = ((robot_width/2) / motor_dist * vz_sensitivity, (robot_length/2)/motor_dist * vz_sensitivity) # multiply both by vz and the
 
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
