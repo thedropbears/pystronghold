@@ -15,7 +15,9 @@ class RobotMap:
 
     joystick_port = 0
     gamepad_port = 1
-    deadzone = 0.05
+    joystick_x_deadzone = 0.05
+    joystick_y_deadzone = 0.05
+    joystick_z_deadzone = 0.4
 
     module_b_move_motor_id = 4 #put in
     module_b_rotation_motor_id = 7 # put in

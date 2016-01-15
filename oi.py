@@ -82,24 +82,24 @@ class OI:
         axis=self.applyDeadzone(axis)
         return axis
 
-    def applyDeadzone(self, axis):
-        if abs(axis)<RobotMap.deadzone:
+    def applyDeadzone(self, axis, deadzone):
+        if abs(axis)< deadzone:
             return 0.0
         return axis
 
     def getJoystickX(self):
         axis = self.joystick.getX()
-        axis = self.applyDeadzone(axis)
+        axis = self.applyDeadzone(axis, RobotMap.joystick_x_deadzone)
         return axis
 
     def getJoystickY(self):
         axis = self.joystick.getY()
-        axis = self.applyDeadzone(axis)
+        axis = self.applyDeadzone(axis, RobotMap.joystick_y_deadzone)
         return axis
 
     def getJoystickZ(self):
         axis = self.joystick.getZ()
-        axis = self.applyDeadzone(axis)
+        axis = self.applyDeadzone(axis, RobotMap.joystick_z_deadzone)
         return axis
 
     def getThrottle(self):
