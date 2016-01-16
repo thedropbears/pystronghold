@@ -95,3 +95,17 @@ def test_chassis(robot):
 def test_angular_displacement():
     assert abs(chassis.min_angular_displacement(0.0, math.pi / 4.0) - math.pi / 4.0) < epsilon
     assert abs(chassis.min_angular_displacement(0.0, math.pi * 3.0 / 4.0) - -math.pi / 4.0) < epsilon
+
+def test_retain_wheel_direction(robot):
+    # When the joystick is returned to the centre, keep the last direction that the wheels were pointing
+    chassis = Chassis(robot)
+    for module in chassis._modules:
+        module._direction = math.pi / 4.0
+    chassis.drive(0.0, 0.0, 0.0, 1.0)
+    for module in chassis._modules:
+        assert module._direction == math.pi / 4.0
+    # Should not matter what the throttle is, even if it is zero
+    chassis.drive(0.0, 0.0, 0.0, 0.0)
+    for module in chassis._modules:
+        assert module._direction == math.pi / 4.0
+    
