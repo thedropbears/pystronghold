@@ -52,3 +52,6 @@ class RobotMap:
     module_angular_tol = 0.02 #approx 1 deg
 
     steering_p = 6.0
+
+    move_forward_seconds = 3.0 # seconds
+    move_forward_seconds_button = 11

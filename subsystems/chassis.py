@@ -5,13 +5,11 @@ from wpilib import CANTalon
 
 from robot_map import RobotMap
 
-from commands.omni_drive import OmniDrive
-
 import math
 
 TAU = 2*math.pi
 
-class Chassis(Subsystem):
+class Chassis():
 
     def __init__(self, robot):
 
@@ -27,14 +25,6 @@ class Chassis(Subsystem):
                 SwerveModule(RobotMap.module_b_move_motor_id, RobotMap.module_b_rotation_motor_id, False),
                 SwerveModule(RobotMap.module_c_move_motor_id, RobotMap.module_c_rotation_motor_id, False, True),
                 SwerveModule(RobotMap.module_d_move_motor_id, RobotMap.module_d_rotation_motor_id, False, True)]
-
-
-    #Put methods for controlling this subsystem here.
-    # Call these from Commands.
-
-    def initDefaultCommand(self):
-        #Set the default command for a subsystem here.
-        self.setDefaultCommand(OmniDrive(self.robot))
 
     def drive(self, vX, vY, vZ, throttle):
         motor_vectors = []

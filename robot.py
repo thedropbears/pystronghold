@@ -4,10 +4,10 @@ import wpilib
 import time
 from wpilib import command
 
-#from subsystems.example_subsystem import ExampleSubsystem
 from subsystems import Chassis
-#from commands.example_command import ExampleCommand
 from oi import OI
+
+from robot_map import RobotMap
 
 import logging
 
@@ -16,18 +16,16 @@ def omni_drive(robot):
         robot.chassis.drive(robot.oi.getJoystickY(), robot.oi.getJoystickX(), robot.oi.getJoystickZ(), robot.oi.getThrottle())
         yield
 
-def log_message(robot):
-    time = time.time()
-    robot.logger.info("log message run")
-    print("logged")
-    #only run every 3 seconds
-    while time.time()-time < 3.0:
+def move_forward_time(robot):
+    robot.omni_driving = False
+    tm = time.time()
+    while time.time()-tm < RobotMap.move_forward_seconds:
+        robot.chassis.drive(1.0, 0.0, 0.0, 1.0)
         yield
 
+taskmap = {RobotMap.move_forward_seconds_button:move_forward_time}
 
 class StrongholdRobot(wpilib.IterativeRobot):
-
-    #example_subsystem = ExampleSubsystem()
 
     def robotInit(self):
         """
@@ -40,11 +38,9 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.oi = OI(self)
         self.chassis = Chassis(self)
         self.logger = logging.getLogger("robotpy")
-        #Create the command used for the autonomous period
-        #self.autonomous_command = ExampleCommand(self)
-        self.taskmap = {11:log_message}
         self.auto_tasks = [] # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
         self.current_auto_tasks = []
+        print("init")
 
     def disabledInit(self):
         pass
@@ -54,8 +50,6 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.running = {}
 
     def autonomousInit(self):
-        #Schedule the autonomous command
-        #self.autonomous_command.start()
         self.running = {}
         self.current_auto_tasks = self.auto_tasks
 
@@ -87,7 +81,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
-        for button, task in self.taskmap.items():
+        for button, task in taskmap.items():
             #if the button for the task is pressed and the task is not already running
             if self.oi.joystick.getRawButton(button) and task not in self.running:
                 ifunc = task(self).__next__
