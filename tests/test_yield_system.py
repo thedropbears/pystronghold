@@ -55,3 +55,16 @@ def test_omni_drive(robot, control, fake_time, hal_data):
     for module in robot.chassis._modules:
         assert (module._speed - 1.0) < epsilon
 
+def test_autonomous_start(robot, control, fake_time, hal_data):
+    robot.auto_tasks = move_forward_auto
+    robot.omni_driving = False
+    control.set_autonomous(enabled = True)
+    control.run_test(lambda tm: tm < RobotMap.move_forward_seconds/2.0)
+    assert len(robot.running) >= 1
+
+def test_autonomous_end(robot, control, fake_time, hal_data):
+    robot.auto_tasks = move_forward_auto
+    robot.omni_driving = False
+    control.set_autonomous(enabled = True)
+    control.run_test(lambda tm: tm < RobotMap.move_forward_seconds+1)
+    assert len(robot.running)

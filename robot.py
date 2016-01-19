@@ -25,6 +25,8 @@ def move_forward_time(robot):
 
 taskmap = {RobotMap.move_forward_seconds_button:move_forward_time}
 
+move_forward_auto = [[move_forward_time]]
+
 class StrongholdRobot(wpilib.IterativeRobot):
 
     def robotInit(self):
@@ -38,7 +40,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.oi = OI(self)
         self.chassis = Chassis(self)
         self.logger = logging.getLogger("robotpy")
-        self.auto_tasks = [] # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
+        self.auto_tasks = move_forward_auto # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
         self.current_auto_tasks = []
         print("init")
 
@@ -59,22 +61,22 @@ class StrongholdRobot(wpilib.IterativeRobot):
         for i in range(len(self.auto_tasks)):
             if len(self.auto_tasks[i]) == 0:
                 self.auto_tasks[i].pop()
-        for command_sequence in self.auto_tasks:
+        for command_sequence in self.current_auto_tasks:
             if command_sequence[0] not in self.running:
                 ifunc = command_sequence[0](self).__next__
                 self.running[command_sequence[0]] = ifunc
         done = []
         for key, ifunc in self.running.items():
             try:
-                ifunc(self)
+                ifunc()
             except StopIteration:
                 done.append(key)
         for key in done:
             self.running.pop(key)
             # remove the done task from our list of auto commands
-            for command_sequence in self.running:
-                if command_sequence[0] == done:
-                    command_seqeuence[0].pop()
+            for command_sequence in self.current_auto_tasks:
+                if key == command_sequence[0]:
+                    command_sequence.pop(0)
 
     def teleopInit(self):
         self.running = {}
