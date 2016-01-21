@@ -6,6 +6,7 @@ from wpilib import command
 
 from subsystems import Chassis
 from subsystems import Vision
+from subsystems import DriveMotors
 from oi import OI
 
 from robot_map import RobotMap
@@ -34,7 +35,14 @@ def strafe_with_vision(robot):
         yield
 
 
-taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision}
+def drive_motors(robot):
+    robot.omni_driving = False
+    while not robot.omni_driving:
+        robot.drive_motors.drive(robot.oi.getThrottle()*-1.0)
+        robot.logger.info(robot.oi.getThrottle()*-1.0)
+        yield
+
+taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision, 8:drive_motors}
 
 move_forward_auto = [[move_forward_time]]
 
@@ -48,6 +56,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.running = {}
         self.omni_driving = True
         self.omni_drive = omni_drive
+        self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
         self.chassis = Chassis(self)
         self.logger = logging.getLogger("robotpy")

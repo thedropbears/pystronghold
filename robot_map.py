@@ -28,6 +28,9 @@ class RobotMap:
     module_a_move_motor_id = 8
     module_a_rotation_motor_id = 10
 
+    drive_motors_motor_a_id = 2
+    drive_motors_motor_b_id = 5
+
     module_rotation_counts_per_revolution = 497.0*(40.0/48.0) * 4.0
     module_rotation_volts_per_revolution = 3.3
 
