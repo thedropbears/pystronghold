@@ -5,11 +5,12 @@ import time
 from wpilib import command
 
 from subsystems import Chassis
+from subsystems import Vision
 from oi import OI
 
 from robot_map import RobotMap
-
 import logging
+from multiprocessing import Array, Event
 
 def omni_drive(robot):
     while robot.omni_driving:
@@ -42,18 +43,23 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.logger = logging.getLogger("robotpy")
         self.auto_tasks = move_forward_auto # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
         self.current_auto_tasks = []
-        print("init")
+        self.vision_array = Array("d")
+        self.vision_terminate_event = Event()
+        self.vision = Vision(self.vision_array, self.vision_terminate_event)
 
     def disabledInit(self):
-        pass
+        self.vision_terminate_event.clear()
 
     def disabledPeriodic(self):
         """This function is called periodically when disabled."""
         self.running = {}
+        self.vision_terminate_event.clear()
 
     def autonomousInit(self):
         self.running = {}
         self.current_auto_tasks = self.auto_tasks
+        self.vision_terminate_event.set()
+        self.vision.start()
 
     def autonomousPeriodic(self):
         """This function is called periodically during autonomous."""
@@ -80,6 +86,8 @@ class StrongholdRobot(wpilib.IterativeRobot):
 
     def teleopInit(self):
         self.running = {}
+        self.vision_terminate_event.set()
+        self.vision.start()
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
