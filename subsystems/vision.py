@@ -96,7 +96,7 @@ class Vision(Process):
             return None, None, None, None, rotation_angle, result_image
         x = ((2*x)/videoWidth) - 1
         y = ((2*y)/videoHeight) - 1
-        return x, y, w, h, rotation_angle, result_image
+        return x, y, w, h, result_image
 
 
 

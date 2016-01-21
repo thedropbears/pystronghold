@@ -24,7 +24,17 @@ def move_forward_time(robot):
         robot.chassis.drive(1.0, 0.0, 0.0, 1.0)
         yield
 
-taskmap = {RobotMap.move_forward_seconds_button:move_forward_time}
+def strafe_with_vision(robot):
+    robot.omni_driving = False
+    while True:
+        if robot.vision_array[0] < -0.05:
+            robot.chassis.drive(0.0, 0.1, 0.0, 0.5)
+        elif robot.vision_array[0] > 0.05:
+            robot.chassis.drive(0.0, -0.1, 0.0, 0.5)
+        yield
+
+
+taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision}
 
 move_forward_auto = [[move_forward_time]]
 
@@ -87,6 +97,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
 
     def teleopInit(self):
         self.running = {}
+        self.omni_driving = True
         self.vision_terminate_event.set()
         if not self.vision.is_alive:
             self.vision.start()
@@ -109,6 +120,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
                 done.append(key)
         for key in done:
             self.running.pop(key)
+        self.robot.logger.info(self.vision_array[0])
 
     def testPeriodic(self):
         """This function is called periodically during test mode."""
