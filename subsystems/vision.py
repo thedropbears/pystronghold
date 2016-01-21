@@ -20,10 +20,10 @@ class Vision(Process):
 
 
     def findTarget(self, image):
-        
+
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        
+
         ##Define the colours to look for (in HSV)
         lower_colour = np.array([65, 30, 220])
         upper_colour = np.array([80, 110, 255])
@@ -35,7 +35,7 @@ class Vision(Process):
         mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
 
         #Blur and average the mask - smooth the pixels out
-        blurred = cv2.GaussianBlur(mask, (3, 3), 3, 3) 
+        blurred = cv2.GaussianBlur(mask, (3, 3), 3, 3)
 
         #overlay the mask and the original image
         res = cv2.bitwise_and(blurred,blurred, mask= mask)
@@ -69,9 +69,6 @@ class Vision(Process):
         xy,wh,rotation_angle = cv2.minAreaRect(cnt)
 
         cv2.drawContours(image,[box],0,(0,0,255),2)
-
-            ########################################################################
-            
             #Now that we have an OBB we can get its vital stats to return to the
             # caller. Remember that these numbers need to be independent of the size
             # of the image (we can't return them in pixels). Scale everything relative
@@ -82,20 +79,14 @@ class Vision(Process):
             ## w = ???
             ## h = ???
             ## angle = ???
-        
+
             # We can return an altered image so that we can check that things are
             # working properly.
             ## result_image = <something with image and one of the intermediate steps -
             ##                 mask, blurred, contours, obb, etc>
-        
-            ###############################################################
-      
         (xy, wh, rotation_angle) = (rect[0], rect[1], rect[2])
 
         result_image = image
-
-
-        ###############################################################
         #Converting the width and height variables to inbetween -1 and 1
         try:
             (x, y) = xy
@@ -103,20 +94,10 @@ class Vision(Process):
 
         except ValueError:
             return None, None, None, None, rotation_angle, result_image
-
         x = ((2*x)/videoWidth) - 1
         y = ((2*y)/videoHeight) - 1
-
-        print x
-
-
-
-        ###############################################################
-
-
-
         return x, y, w, h, rotation_angle, result_image
-    
+
 
 
 

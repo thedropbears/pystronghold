@@ -24,7 +24,6 @@ def test_disabled(robot, control, fake_time):
     robot.running = {}
     # run disabled for 15 seconds
     control.set_autonomous(enabled=False)
-    robot.disabledInit()
     # run for 15 fake seconds
     control.run_test(lambda tm: tm < 15)
     assert len(robot.running) == 0
@@ -37,7 +36,6 @@ def test_omni_drive_disable(robot, control, fake_time, hal_data):
     robot.running = {}
     robot.omni_driving= False
     control.set_operator_control(enabled = True)
-    robot.teleopInit()
     hal_data["joysticks"][0]["buttons"][RobotMap.move_forward_seconds_button] = True
     control.run_test(lambda tm: tm < 2)
     assert len(robot.running) == 1

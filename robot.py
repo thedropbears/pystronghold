@@ -43,7 +43,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.logger = logging.getLogger("robotpy")
         self.auto_tasks = move_forward_auto # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
         self.current_auto_tasks = []
-        self.vision_array = Array("d")
+        self.vision_array = Array("d", [0.0, 0.0, 0.0, 0.0])
         self.vision_terminate_event = Event()
         self.vision = Vision(self.vision_array, self.vision_terminate_event)
 
@@ -59,7 +59,8 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.running = {}
         self.current_auto_tasks = self.auto_tasks
         self.vision_terminate_event.set()
-        self.vision.start()
+        if not self.vision.is_alive:
+            self.vision.start()
 
     def autonomousPeriodic(self):
         """This function is called periodically during autonomous."""
@@ -87,7 +88,8 @@ class StrongholdRobot(wpilib.IterativeRobot):
     def teleopInit(self):
         self.running = {}
         self.vision_terminate_event.set()
-        self.vision.start()
+        if not self.vision.is_alive:
+            self.vision.start()
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
