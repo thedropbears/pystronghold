@@ -19,14 +19,14 @@ class RobotMap:
     joystick_y_deadzone = 0.05
     joystick_z_deadzone = 0.4
 
-    module_b_move_motor_id = 4 #put in
-    module_b_rotation_motor_id = 7 # put in
-    module_c_move_motor_id = 2 # put in
-    module_c_rotation_motor_id = 6 # put in
-    module_d_move_motor_id = 1 # put in
-    module_d_rotation_motor_id = 5 # put in
-    module_a_move_motor_id = 3 # put in
-    module_a_rotation_motor_id = 8 # put in
+    module_b_move_motor_id = 6
+    module_b_rotation_motor_id = 7
+    module_c_move_motor_id = 3
+    module_c_rotation_motor_id = 4
+    module_d_move_motor_id = 1
+    module_d_rotation_motor_id = 12
+    module_a_move_motor_id = 8
+    module_a_rotation_motor_id = 10
 
     module_rotation_counts_per_revolution = 497.0*(40.0/48.0) * 4.0
     module_rotation_volts_per_revolution = 3.3
