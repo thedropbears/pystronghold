@@ -33,8 +33,8 @@ class RobotMap:
 
     TAU = math.pi*2.0
 
-    robot_length= 648.0 # mm
-    robot_width = 386.394 # mm
+    robot_length = 498.0  # mm
+    robot_width = 600.0 # mm
 
     motor_dist = math.sqrt((robot_width/2)**2+(robot_length/2)**2) # distance of motors from the center of the robot
 
