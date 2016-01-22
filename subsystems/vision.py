@@ -1,8 +1,11 @@
 from multiprocessing import Process
+import time
 import cv2
 import numpy as np
 
 import logging
+videoWidth = 320
+videoHeight = 240
 
 class Vision(Process):
     def __init__(self, vision_data_array, event):
@@ -10,16 +13,25 @@ class Vision(Process):
         self.vision_data_array = vision_data_array
         self.logger = logging.getLogger("vision")
         self.cap = cv2.VideoCapture(-1)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, videoWidth)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, videoHeight)
         self.logger.info(self.cap)
         self.running = event
         self.running.set()
 
     def run(self):
+        counter = 0
+        tm = time.time()
         while self.running.is_set():
+            counter += 1
+            if counter >= 10:
+                since = time.time()-tm
+                self.logger.info("FPS: "+str(10.0/since))
+                tm = time.time()
+                counter = 0
             success, image = self.cap.read()
             if success:
                 x, y, w, h, image  = self.findTarget(image)
-                self.logger.info("Vision x:" + str(x))
                 self.vision_data_array[0] = x
                 self.vision_data_array[1] = y
                 self.vision_data_array[2] = w
@@ -37,8 +49,6 @@ class Vision(Process):
         lower_colour = np.array([65, 30, 220])
         upper_colour = np.array([80, 110, 255])
 
-        videoWidth = 640
-        videoHeight = 480
 
         #Create a mask that filters out only those colours
         mask = cv2.inRange(hsv_image, lower_colour, upper_colour)

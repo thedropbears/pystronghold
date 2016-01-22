@@ -27,14 +27,15 @@ def move_forward_time(robot):
 
 def strafe_with_vision(robot):
     robot.omni_driving = False
+    x_offset = 0.0
+    alpha = 0.4
     while True:
         if robot.vision_array[3] == 0.0:
-            robot.chassis.drive(1.0, 0.0, 0.0, 0.0)
+            robot.chassis.drive(0.0, 1.0, 0.0, 0.0)
             yield
-        elif robot.vision_array[0] < -0.05:
-            robot.chassis.drive(0.0, 0.3, 0.0, 1.0)
-        elif robot.vision_array[0] > 0.05:
-            robot.chassis.drive(0.0, -0.3, 0.0, 1.0)
+        else:
+            x_offset = alpha*robot.vision_array[0]+(1.0-alpha)*x_offset
+            robot.chassis.drive(0.0, x_offset, 0.0, 0.5)
         yield
 
 
