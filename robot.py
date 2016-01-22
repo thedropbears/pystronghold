@@ -37,9 +37,11 @@ def strafe_with_vision(robot):
 
 def drive_motors(robot):
     robot.omni_driving = False
+    robot.chassis.drive(0.0, 0.0, 0.0, 0.0)
     while not robot.omni_driving:
-        robot.drive_motors.drive(robot.oi.getThrottle()*-1.0)
-        robot.logger.info(robot.oi.getThrottle()*-1.0)
+        robot.drive_motors.drive(robot.oi.getThrottle()*2.0-1.0)
+        robot.logger.info(robot.oi.getThrottle()*2.0-1.0)
+        logging.getLogger("robotpy").info(robot.oi.getThrottle()*2.0-1.0)
         yield
 
 taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision, 8:drive_motors}
@@ -53,13 +55,13 @@ class StrongholdRobot(wpilib.IterativeRobot):
         This function is called upon program startup and
         should be used for any initialization code.
         """
+        self.logger = logging.getLogger("robotpy")
         self.running = {}
         self.omni_driving = True
         self.omni_drive = omni_drive
         self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
         self.chassis = Chassis(self)
-        self.logger = logging.getLogger("robotpy")
         self.auto_tasks = move_forward_auto # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
         self.current_auto_tasks = []
         self.vision_array = Array("d", [0.0, 0.0, 0.0, 0.0])
