@@ -120,7 +120,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
                 done.append(key)
         for key in done:
             self.running.pop(key)
-        self.robot.logger.info(self.vision_array[0])
+        self.logger.info(self.vision_array[0])
 
     def testPeriodic(self):
         """This function is called periodically during test mode."""
