@@ -1,22 +1,31 @@
 from multiprocessing import Process
 import cv2
+import numpy as np
+
+import logging
 
 class Vision(Process):
     def __init__(self, vision_data_array, event):
         super().__init__(args=vision_data_array)
         self.vision_data_array = vision_data_array
-        self.cap = cv2.VideoCapture(0)
+        self.logger = logging.getLogger("vision")
+        self.cap = cv2.VideoCapture(-1)
+        self.logger.info(self.cap)
         self.running = event
         self.running.set()
 
     def run(self):
-        while self.running:
-            image = cap.read()
-            x, y, w, h, image  = findTarget(image)
-            self.vision_data_array[0] = x
-            self.vision_data_array[1] = y
-            self.vision_data_array[2] = w
-            self.vision_data_array[3] = h
+        while self.running.is_set():
+            success, image = self.cap.read()
+            if success:
+                x, y, w, h, image  = self.findTarget(image)
+                self.logger.info("Vision x:" + str(x))
+                self.vision_data_array[0] = x
+                self.vision_data_array[1] = y
+                self.vision_data_array[2] = w
+                self.vision_data_array[3] = h
+            else:
+                self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0]
 
 
     def findTarget(self, image):
@@ -37,11 +46,8 @@ class Vision(Process):
         #Blur and average the mask - smooth the pixels out
         blurred = cv2.GaussianBlur(mask, (3, 3), 3, 3)
 
-        #overlay the mask and the original image
-        res = cv2.bitwise_and(blurred,blurred, mask= mask)
-
         #Get the information for the contours
-        contours, heirarchy = cv2.findContours(blurred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        derp, contours, heirarchy = cv2.findContours(blurred, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         #sort the contours into a list
         areas = [cv2.contourArea(contour) for contour in contours]
@@ -51,7 +57,7 @@ class Vision(Process):
 
         except ValueError:
             result_image = image
-            return None, None, None, None, None, result_image
+            return 0.0, 0.0, 0.0, 0.0, result_image
 
 
         #define the largest contour
@@ -63,7 +69,7 @@ class Vision(Process):
         perimeter = cv2.arcLength(cnt, True)
 
         rect = cv2.minAreaRect(cnt)
-        box = cv2.cv.BoxPoints(rect)
+        box = cv2.boxPoints(rect)
         box = np.int0(box)
 
         xy,wh,rotation_angle = cv2.minAreaRect(cnt)

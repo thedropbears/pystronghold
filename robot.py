@@ -28,10 +28,13 @@ def move_forward_time(robot):
 def strafe_with_vision(robot):
     robot.omni_driving = False
     while True:
-        if robot.vision_array[0] < -0.05:
-            robot.chassis.drive(0.0, 0.1, 0.0, 0.5)
+        if robot.vision_array[3] == 0.0:
+            robot.chassis.drive(1.0, 0.0, 0.0, 0.0)
+            yield
+        elif robot.vision_array[0] < -0.05:
+            robot.chassis.drive(0.0, 0.3, 0.0, 1.0)
         elif robot.vision_array[0] > 0.05:
-            robot.chassis.drive(0.0, -0.1, 0.0, 0.5)
+            robot.chassis.drive(0.0, -0.3, 0.0, 1.0)
         yield
 
 
@@ -41,7 +44,6 @@ def drive_motors(robot):
     while not robot.omni_driving:
         robot.drive_motors.drive(robot.oi.getThrottle()*2.0-1.0)
         robot.logger.info(robot.oi.getThrottle()*2.0-1.0)
-        logging.getLogger("robotpy").info(robot.oi.getThrottle()*2.0-1.0)
         yield
 
 taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision, 8:drive_motors}
@@ -50,12 +52,12 @@ move_forward_auto = [[move_forward_time]]
 
 class StrongholdRobot(wpilib.IterativeRobot):
 
+    logger = logging.getLogger("robot")
     def robotInit(self):
         """
         This function is called upon program startup and
         should be used for any initialization code.
         """
-        self.logger = logging.getLogger("robotpy")
         self.running = {}
         self.omni_driving = True
         self.omni_drive = omni_drive
@@ -80,8 +82,10 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.running = {}
         self.current_auto_tasks = self.auto_tasks
         self.vision_terminate_event.set()
-        if not self.vision.is_alive:
+        try:
             self.vision.start()
+        except:
+            pass
 
     def autonomousPeriodic(self):
         """This function is called periodically during autonomous."""
@@ -110,8 +114,10 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.running = {}
         self.omni_driving = True
         self.vision_terminate_event.set()
-        if not self.vision.is_alive:
+        try:
             self.vision.start()
+        except:
+            pass
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
@@ -131,7 +137,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
                 done.append(key)
         for key in done:
             self.running.pop(key)
-        self.logger.info(self.vision_array[0])
+        #self.logger.info("Teleop periodic vision: " + str(self.vision_array[0]))
 
     def testPeriodic(self):
         """This function is called periodically during test mode."""
