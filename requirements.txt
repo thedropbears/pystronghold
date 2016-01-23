@@ -1,4 +1,4 @@
-pytest
+pytest>=2.8.0
 pyfrc>=2016.0.0
 wpilib>=2016.0.0
 robotpy-hal-sim>=2016.0.0
