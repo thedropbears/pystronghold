@@ -2,6 +2,7 @@ from multiprocessing import Process
 import time
 import cv2
 import numpy as np
+from wpilib import Resource
 
 import logging
 video_width = 320
@@ -18,9 +19,11 @@ class Vision(Process):
         self.logger.info(self.cap)
         self.running = event
         self.running.set()
+        # Register with Resource so teardown works
+        Resource._add_global_resource(self)
 
     def run(self):
-        #counter = 0 # FPS counter
+        # counter = 0 # FPS counter
         tm = time.time()
         while self.running.is_set():
             """ uncomment this and the counter above to get the fps
@@ -32,7 +35,7 @@ class Vision(Process):
                 counter = 0"""
             success, image = self.cap.read()
             if success:
-                x, y, w, h, image  = self.findTarget(image)
+                x, y, w, h, image = self.findTarget(image)
                 self.vision_data_array[0] = x
                 self.vision_data_array[1] = y
                 self.vision_data_array[2] = w
@@ -40,51 +43,53 @@ class Vision(Process):
             else:
                 self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0]
 
+    def free(self):
+        self.running.clear()
 
     def findTarget(self, image):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        ##Define the colours to look for (in HSV)
+        # #Define the colours to look for (in HSV)
         lower_colour = np.array([40, 55, 210])
         upper_colour = np.array([110, 220, 255])
-        #Create a mask that filters out only those colours
+        # Create a mask that filters out only those colours
         mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
-        #Blur and average the mask - smooth the pixels out
+        # Blur and average the mask - smooth the pixels out
         blurred = cv2.GaussianBlur(mask, (3, 3), 3, 3)
         # Errode and dialate the image to get rid of noise
-        kernel = np.ones((4,4),np.uint8)
-        erosion = cv2.erode(blurred,kernel,iterations = 1)
-        dialated = cv2.dilate(erosion,kernel,iterations = 1)
-        #Get the information for the contours
-        derp, contours, heirarchy = cv2.findContours(dialated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        #sort the contours into a list
+        kernel = np.ones((4, 4), np.uint8)
+        erosion = cv2.erode(blurred, kernel, iterations=1)
+        dialated = cv2.dilate(erosion, kernel, iterations=1)
+        # Get the information for the contours
+        _, contours, __ = cv2.findContours(dialated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # sort the contours into a list
         areas = [cv2.contourArea(contour) for contour in contours]
-        #and retrieve the largest contour in the list
+        # and retrieve the largest contour in the list
         try:
             max_index = np.argmax(areas)
         except ValueError:
             result_image = image
             return 0.0, 0.0, 0.0, 0.0, result_image
-        #define the largest contour
+        # define the largest contour
         cnt = contours[max_index]
-        #get the area of the contour
+        # get the area of the contour
         area = cv2.contourArea(cnt)
-        #get the perimeter of the contour
+        # get the perimeter of the contour
         perimeter = cv2.arcLength(cnt, True)
         # get a rectangle and then a box around the largest countour
         rect = cv2.minAreaRect(cnt)
         box = cv2.boxPoints(rect)
         box = np.int0(box)
-        xy,wh,rotation_angle = cv2.minAreaRect(cnt)
-        cv2.drawContours(image,[box],0,(0,0,255),2)
+        xy, wh, rotation_angle = cv2.minAreaRect(cnt)
+        cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
         (xy, wh, rotation_angle) = (rect[0], rect[1], rect[2])
         result_image = image
-        #Converting the width and height variables to inbetween -1 and 1
+        # Converting the width and height variables to inbetween -1 and 1
         try:
             (x, y) = xy
             (w, h) = wh
         except ValueError:
             return 0.0, 0.0, 0.0, 0.0, result_image
-        x = ((2*x)/video_width) - 1
-        y = ((2*y)/video_height) - 1
+        x = ((2 * x) / video_width) - 1
+        y = ((2 * y) / video_height) - 1
         return x, y, w, h, result_image
