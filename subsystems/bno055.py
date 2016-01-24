@@ -2,13 +2,16 @@ from wpilib import I2C
 from wpilib.interfaces import PIDSource
 from wpilib import GyroBase
 
-class BoschGyro(GyroBase):
+class BNO055(GyroBase):
     """Class to read euler values in radians from the I2C bus"""
 
     PIDSourceType = PIDSource.PIDSourceType.kDisplacement
 
-    def __init__(self):
-        pass
+    def __init__(self, port, address=None):
+        if address is None:
+            address = self.BNO055_ADDRESS_A
+
+        self.i2c = I2C(port, address)
 
     def getAngles(self):
         """ Return the [heading, pitch, roll] of the gyro """
