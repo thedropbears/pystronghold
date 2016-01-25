@@ -9,7 +9,7 @@ video_width = 320
 video_height = 240
 
 class Vision(Process):
-    def __init__(self, vision_data_array, event):
+    def __init__(self, vision_data_array, running_event, lock):
         super().__init__(args=vision_data_array)
         self.vision_data_array = vision_data_array
         self.logger = logging.getLogger("vision")
@@ -17,8 +17,9 @@ class Vision(Process):
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
         self.logger.info(self.cap)
-        self.running = event
+        self.running = running_event
         self.running.set()
+        self.lock = lock
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
 
@@ -34,14 +35,12 @@ class Vision(Process):
                 tm = time.time()
                 counter = 0"""
             success, image = self.cap.read()
-            if success:
-                x, y, w, h, image = self.findTarget(image)
-                self.vision_data_array[0] = x
-                self.vision_data_array[1] = y
-                self.vision_data_array[2] = w
-                self.vision_data_array[3] = h
-            else:
-                self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0]
+            with self.lock:
+                if success:
+                    x, y, w, h, image = self.findTarget(image)
+                    self.vision_data_array[:] = [x, y, w, h, 1]
+                else:
+                    self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, 1]
 
     def free(self):
         self.running.clear()
