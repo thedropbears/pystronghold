@@ -2,6 +2,8 @@ import wpilib
 from wpilib import buttons
 
 from robot_map import RobotMap
+
+import math
 """
 ROBOT AXIS we use these axis mappings, which are different from the wpilib ones
       + X
@@ -104,3 +106,8 @@ class OI:
 
     def getThrottle(self):
         return (self.joystick.getThrottle()-1.0)/-2.0
+
+    def fieldOrient(self, vx, vy, heading):
+        oriented_vx = vx*math.cos(heading) + -vy*math.sin(heading)
+        oriented_vy = vx*math.sin(heading) + vy*math.cos(heading)
+        return oriented_vx, oriented_vy

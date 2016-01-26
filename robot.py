@@ -7,6 +7,7 @@ from wpilib import command
 from subsystems import Chassis
 from subsystems import Vision
 from subsystems import DriveMotors
+from subsystems import BNO055
 from oi import OI
 
 from robot_map import RobotMap
@@ -67,6 +68,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.omni_drive = omni_drive
         self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
+        self.bno055 = BNO055()
         self.chassis = Chassis(self)
         self.auto_tasks = move_forward_auto  # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
         self.current_auto_tasks = []
@@ -82,6 +84,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         """This function is called periodically when disabled."""
         self.running = {}
         self.vision_terminate_event.clear()
+        self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
 
     def autonomousInit(self):
         self.running = {}

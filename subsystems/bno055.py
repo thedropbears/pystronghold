@@ -2,20 +2,63 @@ from wpilib import I2C
 from wpilib.interfaces import PIDSource
 from wpilib import GyroBase
 
+import logging
+
+import struct
+
 class BNO055(GyroBase):
     """Class to read euler values in radians from the I2C bus"""
 
     PIDSourceType = PIDSource.PIDSourceType.kDisplacement
 
-    def __init__(self, port, address=None):
-        if address is None:
-            address = self.BNO055_ADDRESS_A
+    def __init__(self, port=None, address=None):
+        self.address = address
+        self.port = port
+        if self.address is None:
+            self.address = self.BNO055_ADDRESS_A
+        if port is None:
+            port = I2C.Port.kMXP
 
-        self.i2c = I2C(port, address)
+        self.logger = logging.getLogger("gyro")
+
+        self.i2c = I2C(port, self.address)
+
+        self.logger.info("Address: " + str(self.i2c.addressOnly()))
+        # set the units that we want
+        current_units = self.i2c.read(self.BNO055_UNIT_SEL_ADDR, 1)[0]
+        for unit_list in self.BNO055_UNIT_SEL_LIST:
+            if unit_list[0] == 1:
+                current_units = current_units | (1<<unit_list[1])
+            elif unit_list[0] == 0:
+                current_units = current_units & ~ (1<<unit_list[1])
+        self.i2c.write(self.BNO055_UNIT_SEL_ADDR, current_units)
+        self.setOperationMode(self.OPERATION_MODE_IMUPLUS) #accelerometer and gyro
+        #self.setOperationMode(self.OPERATION_MODE_AMG)
+
+    def setOperationMode(self, mode):
+        if 0X00 <= mode <= 0X0C: # ensure the operation mode is in the valid range
+            self.i2c.write(self.BNO055_OPR_MODE_ADDR, mode)
 
     def getAngles(self):
         """ Return the [heading, pitch, roll] of the gyro """
-        pass
+        return [self.getHeading(), self.getPitch(), self.getRoll()]
+
+    def getHeading(self):
+        return self.getEuler(self.BNO055_EULER_H_LSB_ADDR)
+
+    def getPitch(self):
+        return self.getEuler(self.BNO055_EULER_P_LSB_ADDR)
+
+    def getRoll(self):
+        return self.getEuler(self.BNO055_EULER_R_LSB_ADDR)
+
+    def getEuler(self, start_register):
+        euler_bytes = self.i2c.read(start_register, 2)
+        euler_unsigned = euler_bytes[1] << 8 | euler_bytes[0]
+        if euler_unsigned > 32767:
+            euler_unsigned -= 65536
+        euler_signed =  float(euler_unsigned)/900.0
+        return euler_signed
 
     def getRates(self):
         """ Return the angular rates of the gyroscope as [heading, pitch, roll] """
@@ -117,9 +160,14 @@ class BNO055(GyroBase):
     BNO055_UNIT_SEL_EUL_UNIT = 1 # rad
     BNO055_UNIT_SEL_EUL_UNIT_INDEX = 2
     BNO055_UNIT_SEL_TEMP_UNIT = 0 # celcius
-    BNO055_UNIT_SEL_EUL_UNIT_INDEX = 4
-    BNO055_UNIT_SEL_ORI_MODE = 1 # android orientation mode, pitch turning clockwise decreases values
-    BNO055_UNIT_SEL_EUL_UNIT_INDEX = 7
+    BNO055_UNIT_SEL_TEMP_UNIT_INDEX = 4
+    BNO055_UNIT_SEL_ORI_UNIT = 1 # android orientation mode, pitch turning clockwise decreases values
+    BNO055_UNIT_SEL_ORI_UNIT_INDEX = 7
+    BNO055_UNIT_SEL_LIST = [[BNO055_UNIT_SEL_ACC_UNIT, BNO055_UNIT_SEL_ACC_UNIT_INDEX],
+                [BNO055_UNIT_SEL_GYR_UNIT, BNO055_UNIT_SEL_GYR_UNIT_INDEX],
+                [BNO055_UNIT_SEL_EUL_UNIT, BNO055_UNIT_SEL_EUL_UNIT_INDEX],
+                [BNO055_UNIT_SEL_TEMP_UNIT, BNO055_UNIT_SEL_TEMP_UNIT_INDEX],
+                [BNO055_UNIT_SEL_ORI_UNIT, BNO055_UNIT_SEL_ORI_UNIT_INDEX]]
 
     BNO055_DATA_SELECT_ADDR = 0X3C
 
