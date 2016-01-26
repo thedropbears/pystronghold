@@ -3,6 +3,7 @@ import time
 import cv2
 import numpy as np
 from wpilib import Resource
+import hal
 
 import logging
 video_width = 320
@@ -13,9 +14,12 @@ class Vision(Process):
         super().__init__(args=vision_data_array)
         self.vision_data_array = vision_data_array
         self.logger = logging.getLogger("vision")
-        self.cap = cv2.VideoCapture(-1)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
+        if hal.HALIsSimulation():
+            self.cap = VideoCaptureSim()
+        else:
+            self.cap = cv2.VideoCapture(-1)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
         self.logger.info(self.cap)
         self.running = running_event
         self.running.set()
@@ -92,3 +96,8 @@ class Vision(Process):
         x = ((2 * x) / video_width) - 1
         y = ((2 * y) / video_height) - 1
         return x, y, w, h, result_image
+
+class VideoCaptureSim():
+    def read(self):
+        return False, None
+

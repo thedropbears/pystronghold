@@ -1,10 +1,10 @@
 from wpilib import I2C
 from wpilib.interfaces import PIDSource
 from wpilib import GyroBase
+import hal
+from hal_impl.i2c_helpers import I2CSimBase
 
 import logging
-
-import struct
 
 class BNO055(GyroBase):
     """Class to read euler values in radians from the I2C bus"""
@@ -21,22 +21,26 @@ class BNO055(GyroBase):
 
         self.logger = logging.getLogger("gyro")
 
-        self.i2c = I2C(port, self.address)
+        sim_port = None
+        if hal.HALIsSimulation():
+            sim_port = BNO055Sim()
+
+        self.i2c = I2C(port, self.address, sim_port)
 
         self.logger.info("Address: " + str(self.i2c.addressOnly()))
         # set the units that we want
         current_units = self.i2c.read(self.BNO055_UNIT_SEL_ADDR, 1)[0]
         for unit_list in self.BNO055_UNIT_SEL_LIST:
             if unit_list[0] == 1:
-                current_units = current_units | (1<<unit_list[1])
+                current_units = current_units | (1 << unit_list[1])
             elif unit_list[0] == 0:
-                current_units = current_units & ~ (1<<unit_list[1])
+                current_units = current_units & ~(1 << unit_list[1])
         self.i2c.write(self.BNO055_UNIT_SEL_ADDR, current_units)
-        self.setOperationMode(self.OPERATION_MODE_IMUPLUS) #accelerometer and gyro
-        #self.setOperationMode(self.OPERATION_MODE_AMG)
+        self.setOperationMode(self.OPERATION_MODE_IMUPLUS)  # accelerometer and gyro
+        # self.setOperationMode(self.OPERATION_MODE_AMG)
 
     def setOperationMode(self, mode):
-        if 0X00 <= mode <= 0X0C: # ensure the operation mode is in the valid range
+        if 0X00 <= mode <= 0X0C:  # ensure the operation mode is in the valid range
             self.i2c.write(self.BNO055_OPR_MODE_ADDR, mode)
 
     def getAngles(self):
@@ -57,7 +61,7 @@ class BNO055(GyroBase):
         euler_unsigned = euler_bytes[1] << 8 | euler_bytes[0]
         if euler_unsigned > 32767:
             euler_unsigned -= 65536
-        euler_signed =  float(euler_unsigned)/900.0
+        euler_signed = float(euler_unsigned) / 900.0
         return euler_signed
 
     def getRates(self):
@@ -111,12 +115,12 @@ class BNO055(GyroBase):
     BNO055_GYRO_DATA_Z_LSB_ADDR = 0X18
     BNO055_GYRO_DATA_Z_MSB_ADDR = 0X19
 
-    BNO055_EULER_H_LSB_ADDR = 0X1A # euler heading, least significant bit
-    BNO055_EULER_H_MSB_ADDR = 0X1B # euler heading, most significant bit
-    BNO055_EULER_P_LSB_ADDR = 0X1C # euler pitch, least significant bit
-    BNO055_EULER_P_MSB_ADDR = 0X1D # euler pitch, most significant bit
-    BNO055_EULER_R_LSB_ADDR = 0X1E # euler roll, least significant bit
-    BNO055_EULER_R_MSB_ADDR = 0X1F # euler roll, most significant bit
+    BNO055_EULER_H_LSB_ADDR = 0X1A  # euler heading, least significant bit
+    BNO055_EULER_H_MSB_ADDR = 0X1B  # euler heading, most significant bit
+    BNO055_EULER_P_LSB_ADDR = 0X1C  # euler pitch, least significant bit
+    BNO055_EULER_P_MSB_ADDR = 0X1D  # euler pitch, most significant bit
+    BNO055_EULER_R_LSB_ADDR = 0X1E  # euler roll, least significant bit
+    BNO055_EULER_R_MSB_ADDR = 0X1F  # euler roll, most significant bit
 
     BNO055_QUATERNION_DATA_W_LSB_ADDR = 0X20
     BNO055_QUATERNION_DATA_W_MSB_ADDR = 0X21
@@ -151,17 +155,17 @@ class BNO055(GyroBase):
     BNO055_SYS_STAT_ADDR = 0X39
     BNO055_SYS_ERR_ADDR = 0X3A
 
-    BNO055_UNIT_SEL_ADDR = 0X3B # address used to select the unit outputs
+    BNO055_UNIT_SEL_ADDR = 0X3B  # address used to select the unit outputs
     # the units that we want and the index in the unit select register that corrosponds to it
-    BNO055_UNIT_SEL_ACC_UNIT = 0 #m/s
+    BNO055_UNIT_SEL_ACC_UNIT = 0  # m/s
     BNO055_UNIT_SEL_ACC_UNIT_INDEX = 0
-    BNO055_UNIT_SEL_GYR_UNIT = 1 # rad/s
+    BNO055_UNIT_SEL_GYR_UNIT = 1  # rad/s
     BNO055_UNIT_SEL_GYR_UNIT_INDEX = 1
-    BNO055_UNIT_SEL_EUL_UNIT = 1 # rad
+    BNO055_UNIT_SEL_EUL_UNIT = 1  # rad
     BNO055_UNIT_SEL_EUL_UNIT_INDEX = 2
-    BNO055_UNIT_SEL_TEMP_UNIT = 0 # celcius
+    BNO055_UNIT_SEL_TEMP_UNIT = 0  # celcius
     BNO055_UNIT_SEL_TEMP_UNIT_INDEX = 4
-    BNO055_UNIT_SEL_ORI_UNIT = 1 # android orientation mode, pitch turning clockwise decreases values
+    BNO055_UNIT_SEL_ORI_UNIT = 1  # android orientation mode, pitch turning clockwise decreases values
     BNO055_UNIT_SEL_ORI_UNIT_INDEX = 7
     BNO055_UNIT_SEL_LIST = [[BNO055_UNIT_SEL_ACC_UNIT, BNO055_UNIT_SEL_ACC_UNIT_INDEX],
                 [BNO055_UNIT_SEL_GYR_UNIT, BNO055_UNIT_SEL_GYR_UNIT_INDEX],
@@ -171,7 +175,7 @@ class BNO055(GyroBase):
 
     BNO055_DATA_SELECT_ADDR = 0X3C
 
-    BNO055_OPR_MODE_ADDR = 0X3D # the address used to select what sensors to use for the gyro outputs
+    BNO055_OPR_MODE_ADDR = 0X3D  # the address used to select what sensors to use for the gyro outputs
     # operation modes for the gyro, changes what sensors it uses and how it fuses them
     OPERATION_MODE_CONFIG = 0X00
     OPERATION_MODE_ACCONLY = 0X01
@@ -188,7 +192,7 @@ class BNO055(GyroBase):
     OPERATION_MODE_NDOF = 0X0C
 
     BNO055_PWR_MODE_ADDR = 0X3E
-    #power modes
+    # power modes
     POWER_MODE_NORMAL = 0X00
     POWER_MODE_LOWPOWER = 0X01
     POWER_MODE_SUSPEND = 0X02
@@ -260,3 +264,15 @@ class BNO055(GyroBase):
     ACCEL_RADIUS_MSB_ADDR = 0X68
     MAG_RADIUS_LSB_ADDR = 0X69
     MAG_RADIUS_MSB_ADDR = 0X6A
+
+class BNO055Sim(I2CSimBase):
+    def i2CTransaction(self, port, device_address, data_to_send, send_size, data_received, receive_size):
+        '''
+            To give data back use ``data_received``::
+            
+                data_received[:] = [1,2,3...]
+            
+            :returns: number of bytes returned
+        '''
+        return receive_size
+    
