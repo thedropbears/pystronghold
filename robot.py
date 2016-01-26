@@ -8,6 +8,7 @@ from subsystems import Chassis
 from subsystems import Vision
 from subsystems import DriveMotors
 from subsystems import BNO055
+from subsystems import RangeFinder
 from oi import OI
 
 from robot_map import RobotMap
@@ -42,6 +43,51 @@ def strafe_with_vision(robot):
                 robot.vision_array[4] = 0  # Reset the "new value" flag
         yield
 
+def move_with_rangefinder(robot):
+    robot.omni_driving = False
+    x_offset_cm = 0.0
+    x_offset_scaled = 0.0
+    desired_dist = 200 # cm
+    max_throttle = 0.3
+    alpha = 0.7
+    robot.logger.info("Rangefinder command init")
+    while True:
+        dist = robot.range_finder.getDistance()
+        x_offset_cm = dist - desired_dist
+        x_offset_scaled = x_offset_cm/desired_dist*max_throttle*alpha + x_offset_scaled*(1-alpha)
+        if x_offset_scaled >= max_throttle:
+            x_offset_scaled = max_throttle
+        elif x_offset_scaled <= -max_throttle:
+            x_offset_scaled = -max_throttle
+        robot.logger.info(-x_offset_scaled)
+        robot.chassis.drive(-x_offset_scaled, 0.0, 0.0, 1.0)
+        yield
+
+def move_with_rangefinder_and_vision(robot):
+    robot.omni_driving = False
+    range_finder_offset_cm = 0.0
+    range_finder_offset_scaled = 0.0
+    desired_dist = 200 # cm
+    max_throttle = 0.3
+    range_alpha = 0.7
+    vision_offset = 0.0
+    vision_alpha = 0.7
+    while True:
+        dist = robot.range_finder.getDistance()
+        range_finder_offset_cm = dist - desired_dist
+        range_finder_offset_scaled = range_finder_offset_cm/desired_dist*max_throttle*range_alpha + range_finder_offset_scaled*(1-range_alpha)
+        if range_finder_offset_scaled >= max_throttle:
+            range_finder_offset_scaled = max_throttle
+        elif range_finder_offset_scaled <= -max_throttle:
+            range_finder_offset_scaled = -max_throttle
+        with robot.vision_lock:
+            if robot.vision_array[3] == 0.0:
+                robot.chassis.drive(-range_finder_offset_scaled, 0.0, 0.0, 1.0)
+            else:
+                vision_offset = vision_alpha*robot.vision_array[0]*max_throttle+(1.0-vision_alpha)*vision_offset
+                robot.chassis.drive(-range_finder_offset_scaled, vision_offset, 0.0, 1.0)
+            robot.vision_array[4] = 0.0
+        yield
 
 def drive_motors(robot):
     robot.omni_driving = False
@@ -51,7 +97,7 @@ def drive_motors(robot):
         robot.logger.info(robot.oi.getThrottle() * 2.0 - 1.0)
         yield
 
-taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision, 8:drive_motors}
+taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision, 8:drive_motors, 10:move_with_rangefinder, 11:move_with_rangefinder_and_vision}
 
 move_forward_auto = [[move_forward_time]]
 
@@ -68,14 +114,16 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.omni_drive = omni_drive
         self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
+        self.range_finder = RangeFinder()
         self.bno055 = BNO055()
         self.chassis = Chassis(self)
         self.auto_tasks = move_forward_auto  # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
         self.current_auto_tasks = []
-        self.vision_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0])
+        self.vision_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0])
         self.vision_terminate_event = multiprocessing.Event()
         self.vision_lock = multiprocessing.Lock()
         self.vision = Vision(self.vision_array, self.vision_terminate_event, self.vision_lock)
+        self.field_oriented = False
 
     def disabledInit(self):
         self.vision_terminate_event.clear()
@@ -84,7 +132,8 @@ class StrongholdRobot(wpilib.IterativeRobot):
         """This function is called periodically when disabled."""
         self.running = {}
         self.vision_terminate_event.clear()
-        self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
+        #self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
+        self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
 
     def autonomousInit(self):
         self.running = {}

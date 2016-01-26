@@ -27,7 +27,8 @@ class Chassis():
                 SwerveModule(RobotMap.module_d_move_motor_id, RobotMap.module_d_rotation_motor_id, False, True)]
 
     def drive(self, vX, vY, vZ, throttle):
-        vX, vY = self.robot.oi.fieldOrient(vX, vY, self.robot.bno055.getHeading())
+        if self.robot.field_oriented:
+            vX, vY = self.robot.oi.fieldOrient(vX, vY, self.robot.bno055.getHeading())
         motor_vectors = []
         for scaling in RobotMap.motor_vz_scaling:
             motor_vectors.append((vX+vZ*scaling[0], vY+vZ*scaling[1]))
