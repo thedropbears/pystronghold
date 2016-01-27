@@ -19,34 +19,9 @@ class RobotMap:
     joystick_y_deadzone = 0.05
     joystick_z_deadzone = 0.4
 
-    module_b_move_motor_id = 6
-    module_b_rotation_motor_id = 7
-    module_c_move_motor_id = 3
-    module_c_rotation_motor_id = 4
-    module_d_move_motor_id = 1
-    module_d_rotation_motor_id = 12
-    module_a_move_motor_id = 8
-    module_a_rotation_motor_id = 10
-
     drive_motors_motor_a_id = 2
     drive_motors_motor_b_id = 5
 
-    robot_length = 498.0  # mm
-    robot_width = 600.0 # mm
-
-    motor_dist = math.sqrt((robot_width/2)**2+(robot_length/2)**2) # distance of motors from the center of the robot
-
-    #                    x component                   y component
-    vz_sensitivity = 1.0
-    vz_components = ((robot_width/2) / motor_dist * vz_sensitivity, (robot_length/2)/motor_dist * vz_sensitivity) # multiply both by vz and the
-
-    # the number that you need to multiply the vz components by to get them in the appropriate directions
-    #                   vx   vy
-    motor_vz_scaling = [(-vz_components[0], vz_components[1]),
-                        (-vz_components[0], -vz_components[1]),
-                        (vz_components[0], -vz_components[1]),
-                        (vz_components[0], vz_components[1])]
-
-    module_angular_tol = 0.02 #approx 1 deg
+    module_angular_tol = 0.02  # approx 1 deg
 
     range_finder_dio_channel = 0

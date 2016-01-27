@@ -1,14 +1,13 @@
 
 import math
 
-TAU = 2*math.pi # :P it had to happen... https://bugs.python.org/issue12345
+TAU = 2 * math.pi  # :P it had to happen... https://bugs.python.org/issue12345
 
 from subsystems.chassis import SwerveModule
 from subsystems.chassis import Chassis
 from subsystems import chassis
-from robot_map import RobotMap
 
-epsilon = 0.01 # Tolerance for floating point errors (~0.5 degrees)
+epsilon = 0.01  # Tolerance for floating point errors (~0.5 degrees)
 
 def test_swerve_init(wpilib, hal_data):
     swerve = SwerveModule(0, 1)
@@ -31,11 +30,11 @@ def test_swerve_steer():
 
     # Rescale values to the range [0, 2*pi)
     swerve._direction = 0.0
-    swerve.steer(2.1*math.pi)
-    assert abs(swerve._direction - 0.1*math.pi) < epsilon
+    swerve.steer(2.1 * math.pi)
+    assert abs(swerve._direction - 0.1 * math.pi) < epsilon
     swerve._direction = 0.0
-    swerve.steer(-2.1*math.pi)
-    assert abs(swerve._direction - -0.1*math.pi) < epsilon
+    swerve.steer(-2.1 * math.pi)
+    assert abs(swerve._direction - -0.1 * math.pi) < epsilon
 
     # Make sure the swerve module calculates the quickest way to the desired heading
     swerve._direction = 0.0
@@ -49,7 +48,7 @@ def reset_chassis(chassis):
         module._speed = 0.0
 
 def test_chassis(robot):
-    epsilon = 0.01 # Tolerance for angular floating point errors (~0.05 degrees)
+    epsilon = 0.01  # Tolerance for angular floating point errors (~0.05 degrees)
     robot.robotInit()
     chassis = robot.chassis
 
@@ -58,10 +57,10 @@ def test_chassis(robot):
     chassis.drive(0.0, 0.0, 0.0, 0.0)
     for module in chassis._modules:
         assert module._speed == 0.0
-        assert abs(module._direction) <= epsilon # make sure that the module has been zeroed
+        assert abs(module._direction) <= epsilon  # make sure that the module has been zeroed
     reset_chassis(chassis)
 
-    #test x axis
+    # test x axis
     chassis.drive(1.0, 0.0, 0.0, 1.0)
     for module in chassis._modules:
         assert module._direction == 0.0
@@ -71,13 +70,13 @@ def test_chassis(robot):
     chassis.drive(0.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
         # test weather each module is facing in the right direction
-        assert TAU/4.0 == module._direction
+        assert TAU / 4.0 == module._direction
     reset_chassis(chassis)
 
-    vz_a = math.atan2(-RobotMap.robot_length, RobotMap.robot_width) #the angle that module a will go to if we spin on spot
-    vz_b = math.atan2(RobotMap.robot_length, RobotMap.robot_width)
-    vz_c = math.atan2(-RobotMap.robot_length, RobotMap.robot_width)
-    vz_d = math.atan2(RobotMap.robot_length, RobotMap.robot_width)
+    vz_a = math.atan2(-Chassis.length, Chassis.width)  # the angle that module a will go to if we spin on spot
+    vz_b = math.atan2(Chassis.length, Chassis.width)
+    vz_c = math.atan2(-Chassis.length, Chassis.width)
+    vz_d = math.atan2(Chassis.length, Chassis.width)
 
     vectors = [vz_a, vz_b, vz_c, vz_d]
 
@@ -89,10 +88,10 @@ def test_chassis(robot):
 
     chassis.drive(1.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert module._direction == TAU/8.0
+        assert module._direction == TAU / 8.0
 
     reset_chassis(chassis)
 
 def test_angular_displacement():
-    assert abs(chassis.min_angular_displacement(0.0, math.pi/4.0) - math.pi/4.0) < epsilon
-    assert abs(chassis.min_angular_displacement(0.0, math.pi*3.0/4.0) - -math.pi/4.0) < epsilon
+    assert abs(chassis.min_angular_displacement(0.0, math.pi / 4.0) - math.pi / 4.0) < epsilon
+    assert abs(chassis.min_angular_displacement(0.0, math.pi * 3.0 / 4.0) - -math.pi / 4.0) < epsilon

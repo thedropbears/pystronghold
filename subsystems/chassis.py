@@ -6,6 +6,29 @@ from robot_map import RobotMap
 import math
 
 class Chassis():
+    # (drive_id, steer_id)
+    module_motors = {'a': {'drive':8, 'steer':10, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':256},
+                     'b': {'drive':6, 'steer':7, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':256},
+                     'c': {'drive':3, 'steer':4, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':256},
+                     'd': {'drive':1, 'steer':12, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':256}
+                     }
+
+    length = 498.0  # mm
+    width = 600.0  # mm
+
+    motor_dist = math.sqrt((width / 2) ** 2 + (length / 2) ** 2)  # distance of motors from the center of the robot
+
+    #                    x component                   y component
+    vz_components = ((width / 2) / motor_dist, (length / 2) / motor_dist)  # multiply both by vz and the
+
+    # the number that you need to multiply the vz components by to get them in the appropriate directions
+    #                   vx   vy
+    motor_vz_scaling = [(-vz_components[0], vz_components[1]),
+                        (-vz_components[0], -vz_components[1]),
+                        (vz_components[0], -vz_components[1]),
+                        (vz_components[0], vz_components[1])]
+    
+    
     def __init__(self, robot):
 
         super().__init__()
@@ -16,25 +39,15 @@ class Chassis():
         #  A - D
         #  |   |
         #  B - C
-        self._modules = [SwerveModule(RobotMap.module_a_move_motor_id,
-                                      RobotMap.module_a_rotation_motor_id,
-                                      True, False, True),
-                         SwerveModule(RobotMap.module_b_move_motor_id,
-                                      RobotMap.module_b_rotation_motor_id,
-                                      True, True, True),
-                         SwerveModule(RobotMap.module_c_move_motor_id,
-                                      RobotMap.module_c_rotation_motor_id,
-                                      True, True, True),
-                         SwerveModule(RobotMap.module_d_move_motor_id,
-                                      RobotMap.module_d_rotation_motor_id,
-                                      True, False, True)
+        self._modules = [SwerveModule(**module_motor_params)
+                         for _, module_motor_params in Chassis.module_motors.items()
                          ]
 
     def drive(self, vX, vY, vZ, throttle):
         if self.robot.field_oriented:
             vX, vY = self.robot.oi.fieldOrient(vX, vY, self.robot.bno055.getHeading())
         motor_vectors = []
-        for scaling in RobotMap.motor_vz_scaling:
+        for scaling in Chassis.motor_vz_scaling:
             motor_vectors.append((vX + vZ * scaling[0], vY + vZ * scaling[1]))
         # convert the vectors to polar coordinates
         polar = []
@@ -55,13 +68,13 @@ class Chassis():
 
 
 class SwerveModule():
-    def __init__(self, driveCanTalonId, steerCanTalonId,
-                 absoluteEncoder=True, reverseDrive=False,
-                 reverseSteer=False):
+    def __init__(self, drive, steer,
+                 absolute=True, reverse_drive=False,
+                 reverse_steer=False, zero_reading=0):
         # Initialise private motor controllers
-        self._drive = CANTalon(driveCanTalonId)
-        self.reverse_drive = reverseDrive
-        self._steer = CANTalon(steerCanTalonId)
+        self._drive = CANTalon(drive)
+        self.reverse_drive = reverse_drive
+        self._steer = CANTalon(steer)
         # Private members to store the setpoints
         self._speed = 0.0
         self._direction = 0.0
@@ -69,24 +82,26 @@ class SwerveModule():
 
         # Set up the motor controllers
         # Different depending on whether we are using absolute encoders or not
-        if absoluteEncoder:
+        if absolute:
             self.counts_per_radian = 1024.0 / (2.0 * math.pi)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.AnalogEncoder)
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
-            self._steer.reverseSensor(reverseSteer)
-            self._steer.reverseOutput(not reverseSteer)
+            self._steer.reverseSensor(reverse_steer)
+            self._steer.reverseOutput(not reverse_steer)
             # Read the current encoder position
             self._steer.setPID(6.0, 0.0, 0.0)  # PID values for abs
-            self._direction = 1.0 * self._steer.get() / self.counts_per_radian
+            self._offset = zero_reading - 256
+            self._direction = float(self._steer.get() - self._offset) / self.counts_per_radian
             import logging
             logging.getLogger("Swerve").info("CAN id: %i Counts: %i Direction: %f"
-                                             % (steerCanTalonId, self._steer.get(), self._direction))
+                                             % (steer, self._steer.get() - self._offset, self._direction))
         else:
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self._steer.setPID(6.0, 0.0, 0.0)  # PID values for rel
             self._steer.setPosition(0.0)
             self.counts_per_radian = 497.0 * (40.0 / 48.0) * 4.0 / (2.0 * math.pi)
+            self._offset = 0
 
 
     def steer(self, direction, speed=0):
@@ -108,7 +123,7 @@ class SwerveModule():
             self._drive.set(-speed)
             self._speed = -speed
         if speed != 0.0:
-            self._steer.set(self._direction * self.counts_per_radian)
+            self._steer.set(self._direction * self.counts_per_radian + self._offset)
 
     def getSpeed(self):
         return self._speed
