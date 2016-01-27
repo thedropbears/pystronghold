@@ -17,13 +17,17 @@ import multiprocessing
 
 def omni_drive(robot):
     while robot.omni_driving:
-        robot.chassis.drive(robot.oi.getJoystickY(), robot.oi.getJoystickX(), robot.oi.getJoystickZ(), robot.oi.getThrottle())
+        robot.chassis.drive(robot.oi.getJoystickY(),
+                            robot.oi.getJoystickX(),
+                            robot.oi.getJoystickZ(),
+                            robot.oi.getThrottle()
+                            )
         yield
 
 def move_forward_time(robot):
     robot.omni_driving = False
     tm = time.time()
-    while time.time() - tm < RobotMap.move_forward_seconds:
+    while time.time() - tm < 2: # Drive for 2 seconds
         robot.chassis.drive(1.0, 0.0, 0.0, 1.0)
         yield
 
@@ -97,7 +101,12 @@ def drive_motors(robot):
         robot.logger.info(robot.oi.getThrottle() * 2.0 - 1.0)
         yield
 
-taskmap = {RobotMap.move_forward_seconds_button:move_forward_time, 9:strafe_with_vision, 8:drive_motors, 10:move_with_rangefinder, 11:move_with_rangefinder_and_vision}
+taskmap = {7:move_forward_time,
+           8:drive_motors,
+           9:strafe_with_vision,
+           10:move_with_rangefinder,
+           11:move_with_rangefinder_and_vision}
+
 
 move_forward_auto = [[move_forward_time]]
 
@@ -111,6 +120,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         """
         self.running = {}
         self.omni_driving = True
+        self.field_oriented = False
         self.omni_drive = omni_drive
         self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
@@ -123,7 +133,6 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.vision_terminate_event = multiprocessing.Event()
         self.vision_lock = multiprocessing.Lock()
         self.vision = Vision(self.vision_array, self.vision_terminate_event, self.vision_lock)
-        self.field_oriented = False
 
     def disabledInit(self):
         self.vision_terminate_event.clear()

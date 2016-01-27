@@ -56,7 +56,4 @@ class RobotMap:
 
     steering_p = 6.0
 
-    move_forward_seconds = 3.0 # seconds
-    move_forward_seconds_button = 11
-
     range_finder_dio_channel = 0
