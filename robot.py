@@ -2,7 +2,6 @@
 
 import wpilib
 import time
-from wpilib import command
 
 from subsystems import Chassis
 from subsystems import Vision
@@ -27,7 +26,7 @@ def omni_drive(robot):
 def move_forward_time(robot):
     robot.omni_driving = False
     tm = time.time()
-    while time.time() - tm < 2: # Drive for 2 seconds
+    while time.time() - tm < 2:  # Drive for 2 seconds
         robot.chassis.drive(1.0, 0.0, 0.0, 1.0)
         yield
 
@@ -51,14 +50,14 @@ def move_with_rangefinder(robot):
     robot.omni_driving = False
     x_offset_cm = 0.0
     x_offset_scaled = 0.0
-    desired_dist = 200 # cm
+    desired_dist = 200  # cm
     max_throttle = 0.3
     alpha = 0.7
     robot.logger.info("Rangefinder command init")
     while True:
         dist = robot.range_finder.getDistance()
         x_offset_cm = dist - desired_dist
-        x_offset_scaled = x_offset_cm/desired_dist*max_throttle*alpha + x_offset_scaled*(1-alpha)
+        x_offset_scaled = x_offset_cm / desired_dist * max_throttle * alpha + x_offset_scaled * (1 - alpha)
         if x_offset_scaled >= max_throttle:
             x_offset_scaled = max_throttle
         elif x_offset_scaled <= -max_throttle:
@@ -72,7 +71,7 @@ def move_with_rangefinder_and_vision(robot):
     robot.field_oriented = False
     range_finder_offset_cm = 0.0
     range_finder_offset_scaled = 0.0
-    desired_dist = 200 # cm
+    desired_dist = 200  # cm
     max_throttle = 0.3
     range_alpha = 0.7
     vision_offset = 0.0
@@ -80,7 +79,7 @@ def move_with_rangefinder_and_vision(robot):
     while True:
         dist = robot.range_finder.getDistance()
         range_finder_offset_cm = dist - desired_dist
-        range_finder_offset_scaled = range_finder_offset_cm/desired_dist*max_throttle*range_alpha + range_finder_offset_scaled*(1-range_alpha)
+        range_finder_offset_scaled = range_finder_offset_cm / desired_dist * max_throttle * range_alpha + range_finder_offset_scaled * (1 - range_alpha)
         if range_finder_offset_scaled >= max_throttle:
             range_finder_offset_scaled = max_throttle
         elif range_finder_offset_scaled <= -max_throttle:
@@ -89,7 +88,7 @@ def move_with_rangefinder_and_vision(robot):
             if robot.vision_array[3] == 0.0:
                 robot.chassis.drive(-range_finder_offset_scaled, 0.0, 0.0, 1.0)
             else:
-                vision_offset = vision_alpha*robot.vision_array[0]*max_throttle+(1.0-vision_alpha)*vision_offset
+                vision_offset = vision_alpha * robot.vision_array[0] * max_throttle + (1.0 - vision_alpha) * vision_offset
                 robot.chassis.drive(-range_finder_offset_scaled, vision_offset, 0.0, 1.0)
             robot.vision_array[4] = 0.0
         yield
@@ -104,12 +103,12 @@ def drive_motors(robot):
 
 def toggle_field_oriented(robot):
     robot.field_oriented = not robot.field_oriented
-    while robot.oi.joystick.getRawButton(robot.oi.field_orient_toggle_button): # wait for 1 sec before toggling again
+    while robot.oi.joystick.getRawButton(robot.oi.field_orient_toggle_button):  # wait for 1 sec before toggling again
         yield
 
 def reset_gyro(robot):
     robot.bno055.resetHeading()
-    while robot.oi.joystick.getRawButton(robot.oi.gyro_reset_button): # wait for 1 sec before toggling again
+    while robot.oi.joystick.getRawButton(robot.oi.gyro_reset_button):  # wait for 1 sec before toggling again
         yield
 
 taskmap = {2:reset_gyro,
@@ -154,8 +153,8 @@ class StrongholdRobot(wpilib.IterativeRobot):
         """This function is called periodically when disabled."""
         self.running = {}
         self.vision_terminate_event.clear()
-        #self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
-        #self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
+        # self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
+        # self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
 
     def autonomousInit(self):
         self.running = {}
