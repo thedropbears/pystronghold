@@ -109,7 +109,8 @@ class SwerveModule():
         else:
             self._drive.set(-speed)
             self._speed = -speed
-        self._steer.set(self._direction*self.counts_per_radian)
+        if speed != 0.0:
+            self._steer.set(self._direction*self.counts_per_radian)
 
     def getSpeed(self):
         return self._speed
