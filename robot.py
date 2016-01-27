@@ -69,6 +69,7 @@ def move_with_rangefinder(robot):
 
 def move_with_rangefinder_and_vision(robot):
     robot.omni_driving = False
+    robot.field_oriented = False
     range_finder_offset_cm = 0.0
     range_finder_offset_scaled = 0.0
     desired_dist = 200 # cm
@@ -101,7 +102,19 @@ def drive_motors(robot):
         robot.logger.info(robot.oi.getThrottle() * 2.0 - 1.0)
         yield
 
-taskmap = {7:move_forward_time,
+def toggle_field_oriented(robot):
+    robot.field_oriented = not robot.field_oriented
+    while robot.oi.joystick.getRawButton(robot.oi.field_orient_toggle_button): # wait for 1 sec before toggling again
+        yield
+
+def reset_gyro(robot):
+    robot.bno055.resetHeading()
+    while robot.oi.joystick.getRawButton(robot.oi.gyro_reset_button): # wait for 1 sec before toggling again
+        yield
+
+taskmap = {2:reset_gyro,
+           3:toggle_field_oriented,
+           7:move_forward_time,
            8:drive_motors,
            9:strafe_with_vision,
            10:move_with_rangefinder,

@@ -37,6 +37,7 @@ class BNO055(GyroBase):
                 current_units = current_units & ~(1 << unit_list[1])
         self.i2c.write(self.BNO055_UNIT_SEL_ADDR, current_units)
         self.setOperationMode(self.OPERATION_MODE_IMUPLUS)  # accelerometer and gyro
+        self.offset = 0.0
         # self.setOperationMode(self.OPERATION_MODE_AMG)
 
     def setOperationMode(self, mode):
@@ -48,6 +49,9 @@ class BNO055(GyroBase):
         return [self.getHeading(), self.getPitch(), self.getRoll()]
 
     def getHeading(self):
+        return self.getEuler(self.BNO055_EULER_H_LSB_ADDR) - self.offset
+
+    def getRawHeading(self):
         return self.getEuler(self.BNO055_EULER_H_LSB_ADDR)
 
     def getPitch(self):
@@ -67,6 +71,9 @@ class BNO055(GyroBase):
     def getRates(self):
         """ Return the angular rates of the gyroscope as [heading, pitch, roll] """
         pass
+
+    def resetHeading(self):
+        self.offset = self.getRawHeading()
 
     def pidGet(self):
         if self.PIDSourceType == PidSource.PIDSourceType.kDisplacement:
@@ -265,4 +272,4 @@ class BNO055(GyroBase):
     MAG_RADIUS_LSB_ADDR = 0X69
     MAG_RADIUS_MSB_ADDR = 0X6A
 
-    
+

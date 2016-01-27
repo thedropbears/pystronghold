@@ -29,6 +29,8 @@ class OI:
     This class is the glue that binds the controls on the physical operator
     interface to the example_command and command groups that allow control of the robot.
     """
+    gyro_reset_button = 2
+    field_orient_toggle_button = 3
 
     def __init__(self, robot):
         self.robot = robot
