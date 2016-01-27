@@ -2,7 +2,6 @@ from wpilib import I2C
 from wpilib.interfaces import PIDSource
 from wpilib import GyroBase
 import hal
-from hal_impl.i2c_helpers import I2CSimBase
 
 import logging
 
@@ -23,6 +22,7 @@ class BNO055(GyroBase):
 
         sim_port = None
         if hal.HALIsSimulation():
+            from .bno055_sim import BNO055Sim
             sim_port = BNO055Sim()
 
         self.i2c = I2C(port, self.address, sim_port)
@@ -265,14 +265,4 @@ class BNO055(GyroBase):
     MAG_RADIUS_LSB_ADDR = 0X69
     MAG_RADIUS_MSB_ADDR = 0X6A
 
-class BNO055Sim(I2CSimBase):
-    def i2CTransaction(self, port, device_address, data_to_send, send_size, data_received, receive_size):
-        '''
-            To give data back use ``data_received``::
-            
-                data_received[:] = [1,2,3...]
-            
-            :returns: number of bytes returned
-        '''
-        return receive_size
     
