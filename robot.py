@@ -120,7 +120,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         """
         self.running = {}
         self.omni_driving = True
-        self.field_oriented = False
+        self.field_oriented = True
         self.omni_drive = omni_drive
         self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
