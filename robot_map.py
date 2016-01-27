@@ -31,11 +31,6 @@ class RobotMap:
     drive_motors_motor_a_id = 2
     drive_motors_motor_b_id = 5
 
-    module_rotation_counts_per_revolution = 497.0*(40.0/48.0) * 4.0
-    module_rotation_volts_per_revolution = 3.3
-
-    TAU = math.pi*2.0
-
     robot_length = 498.0  # mm
     robot_width = 600.0 # mm
 
@@ -53,7 +48,5 @@ class RobotMap:
                         (vz_components[0], vz_components[1])]
 
     module_angular_tol = 0.02 #approx 1 deg
-
-    steering_p = 6.0
 
     range_finder_dio_channel = 0

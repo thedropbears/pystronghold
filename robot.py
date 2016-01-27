@@ -142,7 +142,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.running = {}
         self.vision_terminate_event.clear()
         #self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
-        self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
+        #self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
 
     def autonomousInit(self):
         self.running = {}

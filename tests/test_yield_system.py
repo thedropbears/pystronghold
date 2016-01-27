@@ -14,14 +14,9 @@ def test_command_system(robot, control, fake_time, hal_data):
     hal_data["joysticks"][0]["buttons"][move_forward_seconds_button] = True
     control.run_test(lambda tm: tm < drive_fwd_seconds)
     assert len(robot.running) == 1
-    assert robot.chassis._modules[0]._speed == 1.0
-    assert robot.chassis._modules[1]._speed == 1.0
-    assert robot.chassis._modules[2]._speed == -1.0
-    assert robot.chassis._modules[3]._speed == -1.0
-    assert robot.chassis._modules[0]._direction == 0.0
-    assert robot.chassis._modules[1]._direction == 0.0
-    assert robot.chassis._modules[2]._direction == 0.0
-    assert robot.chassis._modules[3]._direction == 0.0
+    for mod in robot.chassis._modules:
+        assert mod._speed != 0.0
+        assert mod._direction == 0.0
 
 def test_disabled(robot, control, fake_time):
     robot.running = {}
