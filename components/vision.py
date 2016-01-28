@@ -6,10 +6,10 @@ from wpilib import Resource
 import hal
 
 import logging
-video_width = 320
-video_height = 240
 
 class Vision:
+    video_width = 320
+    video_height = 240
     def __init__(self):
         self._data_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0])
         self.logger = logging.getLogger("vision")
@@ -41,9 +41,7 @@ class VisionProcess(multiprocessing.Process):
         if hal.HALIsSimulation():
             self.cap = VideoCaptureSim()
         else:
-            self.cap = cv2.VideoCapture(-1)
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
+            self.setup_capture(-1)
         self.logger.info(self.cap)
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
@@ -111,10 +109,15 @@ class VisionProcess(multiprocessing.Process):
             (w, h) = wh
         except ValueError:
             return 0.0, 0.0, 0.0, 0.0, result_image
-        x = ((2 * x) / video_width) - 1
-        y = ((2 * y) / video_height) - 1
+        x = ((2 * x) / Vision.video_width) - 1
+        y = ((2 * y) / Vision.video_height) - 1
         return x, y, w, h, result_image
-
+    
+    def setup_capture(self, device_idx=-1):
+        self.cap = cv2.VideoCapture(device_idx)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
+    
 class VideoCaptureSim():
     def read(self):
         return False, None
