@@ -98,7 +98,8 @@ def test_angular_displacement():
 
 def test_retain_wheel_direction(robot):
     # When the joystick is returned to the centre, keep the last direction that the wheels were pointing
-    chassis = Chassis(robot)
+    robot.robotInit()
+    chassis = robot.chassis
     for module in chassis._modules:
         module._direction = math.pi / 4.0
     chassis.drive(0.0, 0.0, 0.0, 1.0)

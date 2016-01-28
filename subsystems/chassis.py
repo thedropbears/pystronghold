@@ -104,25 +104,41 @@ class SwerveModule():
             self._offset = 0
 
 
-    def steer(self, direction, speed=0):
+    def steer(self, direction, speed=None):
         # Set the speed and direction of the swerve module
         # Always choose the direction that minimises movement,
         # even if this means reversing the drive motor
-        direction = constrain_angle(direction)  # rescale to +/-pi
-        current_heading = constrain_angle(self._direction)
-
-        delta = min_angular_displacement(current_heading, direction)
-
-        self._direction += delta
-        if self.reverse_drive:
-            speed = -speed
-        if abs(constrain_angle(self._direction) - direction) < math.pi / 6.0:
-            self._drive.set(speed)
-            self._speed = speed
-        else:
-            self._drive.set(-speed)
-            self._speed = -speed
+        if speed is None:
+            # Force the modules to the direction specified - don't
+            # go to the closest one and reverse.
+            direction = constrain_angle(direction)  # rescale to +/-pi
+            current_heading = constrain_angle(self._direction)
+            delta = direction - current_heading
+            if delta > math.pi:
+                delta -= 2.0 * math.pi
+            elif delta < -math.pi:
+                delta += 2.0 * math.pi
+            self._direction += delta
+            self._steer.set(self._direction * self.counts_per_radian + self._offset)
+            self._drive.set(0.0)
+            self._speed = 0.0
+            return
+            
         if speed != 0.0:
+            direction = constrain_angle(direction)  # rescale to +/-pi
+            current_heading = constrain_angle(self._direction)
+    
+            delta = min_angular_displacement(current_heading, direction)
+    
+            self._direction += delta
+            if self.reverse_drive:
+                speed = -speed
+            if abs(constrain_angle(self._direction) - direction) < math.pi / 6.0:
+                self._drive.set(speed)
+                self._speed = speed
+            else:
+                self._drive.set(-speed)
+                self._speed = -speed
             self._steer.set(self._direction * self.counts_per_radian + self._offset)
 
     def getSpeed(self):
