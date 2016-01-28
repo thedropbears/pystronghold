@@ -1,8 +1,6 @@
 
 import math
 
-TAU = 2 * math.pi  # :P it had to happen... https://bugs.python.org/issue12345
-
 from subsystems.chassis import SwerveModule
 from subsystems.chassis import Chassis
 from subsystems import chassis
@@ -23,29 +21,35 @@ def test_swerve_init(wpilib, hal_data):
 def test_swerve_steer():
     swerve = SwerveModule(0, 1)
     # A call to SwerveModule.steer() with one argument should set the speed to 0
-    swerve._speed = 1.0
+    swerve._drive.set(1.0)
     swerve.steer(0.1)
-    assert swerve._speed == 0.0
-    assert abs(swerve._direction - 0.1) < epsilon
+    assert swerve.speed == 0.0
+    assert abs(swerve.direction - 0.1) < epsilon
 
     # Rescale values to the range [0, 2*pi)
-    swerve._direction = 0.0
+    reset_module(swerve)
     swerve.steer(2.1 * math.pi)
-    assert abs(swerve._direction - 0.1 * math.pi) < epsilon
-    swerve._direction = 0.0
+    assert abs(swerve.direction - 0.1 * math.pi) < epsilon
+    reset_module(swerve)
     swerve.steer(-2.1 * math.pi)
-    assert abs(swerve._direction - -0.1 * math.pi) < epsilon
+    assert abs(swerve.direction - -0.1 * math.pi) < epsilon
 
     # Make sure the swerve module calculates the quickest way to the desired heading
-    swerve._direction = 0.0
+    reset_module(swerve)
     swerve.steer(math.pi, 1.0)
-    assert swerve._speed == -1.0
-    assert abs(swerve._direction) < epsilon
+    assert swerve.speed == -1.0
+    assert abs(swerve.direction) < epsilon
+
+def reset_module(module):
+        # Set controller setpoints
+        module._drive.set(0.0)
+        module._steer.set(0.0)
+        # Steer with no speed will drive to absolute position
+        module.steer(0.0)
 
 def reset_chassis(chassis):
     for module in chassis._modules:
-        module._direction = 0.0
-        module._speed = 0.0
+        reset_module(module)
 
 def test_chassis(robot):
     epsilon = 0.01  # Tolerance for angular floating point errors (~0.05 degrees)
@@ -56,21 +60,21 @@ def test_chassis(robot):
     #             vX   vY   vZ   throttle
     chassis.drive(0.0, 0.0, 0.0, 0.0)
     for module in chassis._modules:
-        assert module._speed == 0.0
-        assert abs(module._direction) <= epsilon  # make sure that the module has been zeroed
+        assert module.speed == 0.0
+        assert abs(module.direction) <= epsilon  # make sure that the module has been zeroed
     reset_chassis(chassis)
 
     # test x axis
     chassis.drive(1.0, 0.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert module._direction == 0.0
+        assert module.direction == 0.0
     reset_chassis(chassis)
 
     # test y axis
     chassis.drive(0.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
         # test weather each module is facing in the right direction
-        assert TAU / 4.0 == module._direction
+        assert math.pi / 2.0 == module.direction
     reset_chassis(chassis)
 
     vz_a = math.atan2(-Chassis.length, Chassis.width)  # the angle that module a will go to if we spin on spot
@@ -83,12 +87,12 @@ def test_chassis(robot):
     chassis.drive(0.0, 0.0, 1.0, 1.0)
 
     for module, vector in zip(chassis._modules, vectors):
-        assert abs(module._direction - vector) < epsilon
+        assert abs(module.direction - vector) < epsilon
     reset_chassis(chassis)
 
     chassis.drive(1.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert module._direction == TAU / 8.0
+        assert module.direction == math.pi / 4.0
 
     reset_chassis(chassis)
 
@@ -101,12 +105,12 @@ def test_retain_wheel_direction(robot):
     robot.robotInit()
     chassis = robot.chassis
     for module in chassis._modules:
-        module._direction = math.pi / 4.0
+        module.steer(math.pi / 4.0)
     chassis.drive(0.0, 0.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert module._direction == math.pi / 4.0
+        assert module.direction == math.pi / 4.0
     # Should not matter what the throttle is, even if it is zero
     chassis.drive(0.0, 0.0, 0.0, 0.0)
     for module in chassis._modules:
-        assert module._direction == math.pi / 4.0
-    
+        assert module.direction == math.pi / 4.0
+

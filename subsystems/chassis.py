@@ -27,8 +27,8 @@ class Chassis():
                         (-vz_components[0], -vz_components[1]),
                         (vz_components[0], -vz_components[1]),
                         (vz_components[0], vz_components[1])]
-    
-    
+
+
     def __init__(self, robot):
 
         super().__init__()
@@ -75,10 +75,6 @@ class SwerveModule():
         self._drive = CANTalon(drive)
         self.reverse_drive = reverse_drive
         self._steer = CANTalon(steer)
-        # Private members to store the setpoints
-        self._speed = 0.0
-        self._direction = 0.0
-        # Always in radians. Right hand rule applies - Z is up!
 
         # Set up the motor controllers
         # Different depending on whether we are using absolute encoders or not
@@ -91,17 +87,25 @@ class SwerveModule():
             # Read the current encoder position
             self._steer.setPID(6.0, 0.0, 0.0)  # PID values for abs
             self._offset = zero_reading - 256
-            self._direction = float(self._steer.get() - self._offset) / self.counts_per_radian
-            import logging
-            logging.getLogger("Swerve").info("CAN id: %i Counts: %i Direction: %f"
-                                             % (steer, self._steer.get() - self._offset, self._direction))
         else:
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self._steer.setPID(6.0, 0.0, 0.0)  # PID values for rel
-            self._steer.setPosition(0.0)
             self.counts_per_radian = 497.0 * (40.0 / 48.0) * 4.0 / (2.0 * math.pi)
             self._offset = 0
+
+    @property
+    def direction(self):
+        # Read the current direction from the controller setpoint
+        setpoint = self._steer.getSetpoint()
+        return float(setpoint - self._offset) / self.counts_per_radian
+
+    @property
+    def speed(self):
+        # Read the current speed from the controller setpoint
+        setpoint = self._drive.getSetpoint()
+        return float(setpoint)
+
 
 
     def steer(self, direction, speed=None):
@@ -112,40 +116,29 @@ class SwerveModule():
             # Force the modules to the direction specified - don't
             # go to the closest one and reverse.
             direction = constrain_angle(direction)  # rescale to +/-pi
-            current_heading = constrain_angle(self._direction)
+            current_heading = constrain_angle(self.direction)
             delta = direction - current_heading
             if delta > math.pi:
                 delta -= 2.0 * math.pi
             elif delta < -math.pi:
                 delta += 2.0 * math.pi
-            self._direction += delta
-            self._steer.set(self._direction * self.counts_per_radian + self._offset)
+            self._steer.set((self.direction + delta)* self.counts_per_radian + self._offset)
             self._drive.set(0.0)
-            self._speed = 0.0
             return
-            
+
         if speed != 0.0:
             direction = constrain_angle(direction)  # rescale to +/-pi
-            current_heading = constrain_angle(self._direction)
-    
+            current_heading = constrain_angle(self.direction)
+
             delta = min_angular_displacement(current_heading, direction)
-    
-            self._direction += delta
+
             if self.reverse_drive:
                 speed = -speed
-            if abs(constrain_angle(self._direction) - direction) < math.pi / 6.0:
+            if abs(constrain_angle(self.direction) - direction) < math.pi / 6.0:
                 self._drive.set(speed)
-                self._speed = speed
             else:
                 self._drive.set(-speed)
-                self._speed = -speed
-            self._steer.set(self._direction * self.counts_per_radian + self._offset)
-
-    def getSpeed(self):
-        return self._speed
-
-    def getDirection(self):
-        return self._direction
+            self._steer.set((self.direction + delta) * self.counts_per_radian + self._offset)
 
 def constrain_angle(angle):
     return math.atan2(math.sin(angle), math.cos(angle))
