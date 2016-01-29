@@ -118,6 +118,16 @@ def setup_capture(device_idx=-1):
     cap = cv2.VideoCapture(device_idx)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
+    # On the Logitech C920 the following options cannot be set:
+    # CAP_PROP_EXPOSURE
+    # CAP_PROP_HUE
+
+    # The following can be set:
+    # CAP_PROP_SATURATION
+    # CAP_PROP_BRIGHTNESS
+    # CAP_PROP_CONTRAST
+    # CAP_PROP_SATURATION
+    # CAP_PROP_GAIN
     return cap
 
 class VideoCaptureSim():
