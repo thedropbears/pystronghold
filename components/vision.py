@@ -123,7 +123,6 @@ def setup_capture(device_idx=-1):
     # CAP_PROP_HUE
 
     # The following can be set:
-    # CAP_PROP_SATURATION
     # CAP_PROP_BRIGHTNESS
     # CAP_PROP_CONTRAST
     # CAP_PROP_SATURATION
@@ -141,6 +140,10 @@ if __name__ == "__main__":
     parser.add_argument('file')
     args = parser.parse_args()
     cap = setup_capture(args.device)
+    print("Brightness: %f" % cap.get(cv2.CAP_PROP_BRIGHTNESS))
+    print("Contrast: %f" % cap.get(cv2.CAP_PROP_CONTRAST))
+    print("Saturation: %f" % cap.get(cv2.CAP_PROP_SATURATION))
+    print("Gain: %f" % cap.get(cv2.CAP_PROP_GAIN))
     retval, img = cap.read()
     if retval:
         cv2.imwrite(args.file, img)
