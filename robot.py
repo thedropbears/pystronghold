@@ -13,14 +13,22 @@ from oi import OI
 from robot_map import RobotMap
 import logging
 import multiprocessing
+import math
 
 def omni_drive(robot):
     while robot.omni_driving:
-        robot.chassis.drive(robot.oi.getJoystickY(),
-                            robot.oi.getJoystickX(),
-                            robot.oi.getJoystickZ(),
-                            robot.oi.getThrottle()
-                            )
+        if robot.oi.joystick.getPOV() == -1:
+            robot.chassis.drive(robot.oi.getJoystickY(),
+                                robot.oi.getJoystickX(),
+                                robot.oi.getJoystickZ(),
+                                robot.oi.getThrottle()
+                                )
+        else:
+            robot.chassis.drive(math.cos(robot.oi.joystick.getPOV()*math.pi/180.0),
+                                -math.sin(robot.oi.joystick.getPOV()*math.pi/180.0),
+                                0.0,
+                                None
+                                )
         yield
 
 def move_forward_time(robot):

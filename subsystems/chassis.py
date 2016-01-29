@@ -5,12 +5,14 @@ from robot_map import RobotMap
 
 import math
 
+import logging
+
 class Chassis():
     # (drive_id, steer_id)
-    module_motors = {'a': {'drive':8, 'steer':10, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':256},
-                     'b': {'drive':6, 'steer':7, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':256},
-                     'c': {'drive':3, 'steer':4, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':256},
-                     'd': {'drive':1, 'steer':12, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':256}
+    module_motors = {'a': {'drive':8, 'steer':10, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246},
+                     'b': {'drive':6, 'steer':7, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':852},
+                     'c': {'drive':3, 'steer':4, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187},
+                     'd': {'drive':1, 'steer':12, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':263}
                      }
 
     length = 498.0  # mm
@@ -44,7 +46,7 @@ class Chassis():
                          ]
 
     def drive(self, vX, vY, vZ, throttle):
-        if self.robot.field_oriented:
+        if self.robot.field_oriented and throttle is not None:
             vX, vY = self.robot.oi.fieldOrient(vX, vY, self.robot.bno055.getHeading())
         motor_vectors = []
         for scaling in Chassis.motor_vz_scaling:
@@ -61,6 +63,9 @@ class Chassis():
 
         for polar_vector in polar:
             polar_vector[1] /= max_mag
+            if throttle is None:
+                polar_vector[1] = None
+                continue
             polar_vector[1] *= throttle
 
         for module, polar_vector in zip(self._modules, polar):
@@ -85,8 +90,8 @@ class SwerveModule():
             self._steer.reverseSensor(reverse_steer)
             self._steer.reverseOutput(not reverse_steer)
             # Read the current encoder position
-            self._steer.setPID(6.0, 0.0, 0.0)  # PID values for abs
-            self._offset = zero_reading - 256
+            self._steer.setPID(20.0, 0.0, 0.0)  # PID values for abs
+            self._offset = zero_reading - 256.0
         else:
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
@@ -106,8 +111,6 @@ class SwerveModule():
         setpoint = self._drive.getSetpoint()
         return float(setpoint)
 
-
-
     def steer(self, direction, speed=None):
         # Set the speed and direction of the swerve module
         # Always choose the direction that minimises movement,
@@ -115,18 +118,12 @@ class SwerveModule():
         if speed is None:
             # Force the modules to the direction specified - don't
             # go to the closest one and reverse.
-            direction = constrain_angle(direction)  # rescale to +/-pi
-            current_heading = constrain_angle(self.direction)
-            delta = direction - current_heading
-            if delta > math.pi:
-                delta -= 2.0 * math.pi
-            elif delta < -math.pi:
-                delta += 2.0 * math.pi
-            self._steer.set((self.direction + delta)* self.counts_per_radian + self._offset)
+            delta = constrain_angle(direction - self.direction)  # rescale to +/-pi
+            self._steer.set((self.direction + delta) * self.counts_per_radian + self._offset)
             self._drive.set(0.0)
             return
 
-        if speed != 0.0:
+        if abs(speed) > 0.05:
             direction = constrain_angle(direction)  # rescale to +/-pi
             current_heading = constrain_angle(self.direction)
 

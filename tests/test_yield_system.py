@@ -16,7 +16,6 @@ def test_command_system(robot, control, fake_time, hal_data):
     assert len(robot.running) == 1
     for mod in robot.chassis._modules:
         assert mod.speed != 0.0
-        assert mod.direction == 0.0
 
 def test_disabled(robot, control, fake_time):
     robot.running = {}
@@ -32,7 +31,7 @@ def test_omni_drive_disable(robot, control, fake_time, hal_data):
 
     # test that omni drive does run when its flag is true
     robot.running = {}
-    robot.omni_driving= False
+    robot.omni_driving = False
     control.set_operator_control(enabled=True)
     hal_data["joysticks"][0]["buttons"][move_forward_seconds_button] = True
     control.run_test(lambda tm: tm < 2)
@@ -55,12 +54,12 @@ def test_autonomous_start(robot, control, fake_time, hal_data):
     robot.auto_tasks = move_forward_auto
     robot.omni_driving = False
     control.set_autonomous(enabled=True)
-    control.run_test(lambda tm: tm < drive_fwd_seconds/2.0)
+    control.run_test(lambda tm: tm < drive_fwd_seconds / 2.0)
     assert len(robot.running) >= 1
 
 def test_autonomous_end(robot, control, fake_time, hal_data):
     robot.auto_tasks = move_forward_auto
     robot.omni_driving = False
     control.set_autonomous(enabled=True)
-    control.run_test(lambda tm: tm < drive_fwd_seconds+1)
+    control.run_test(lambda tm: tm < drive_fwd_seconds + 1)
     assert len(robot.running)

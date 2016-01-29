@@ -2,7 +2,7 @@
 import math
 
 from subsystems.chassis import SwerveModule
-from subsystems.chassis import Chassis
+from subsystems.chassis import Chassis, constrain_angle
 from subsystems import chassis
 
 epsilon = 0.01  # Tolerance for floating point errors (~0.5 degrees)
@@ -51,30 +51,25 @@ def reset_chassis(chassis):
     for module in chassis._modules:
         reset_module(module)
 
-def test_chassis(robot):
+def test_chassis(robot, wpilib):
     epsilon = 0.01  # Tolerance for angular floating point errors (~0.05 degrees)
     robot.robotInit()
     chassis = robot.chassis
 
     # vX is out the left side of the robot, vY is out of the front, vZ is upwards, so a +ve rotation is counter-clockwise
     #             vX   vY   vZ   throttle
-    chassis.drive(0.0, 0.0, 0.0, 0.0)
-    for module in chassis._modules:
-        assert module.speed == 0.0
-        assert abs(module.direction) <= epsilon  # make sure that the module has been zeroed
     reset_chassis(chassis)
-
     # test x axis
     chassis.drive(1.0, 0.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert module.direction == 0.0
+        assert abs(constrain_angle(module.direction)) < epsilon
     reset_chassis(chassis)
 
     # test y axis
     chassis.drive(0.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
         # test weather each module is facing in the right direction
-        assert math.pi / 2.0 == module.direction
+        assert abs(constrain_angle(math.pi / 2.0 - module.direction)) < epsilon
     reset_chassis(chassis)
 
     vz_a = math.atan2(-Chassis.length, Chassis.width)  # the angle that module a will go to if we spin on spot
@@ -87,13 +82,12 @@ def test_chassis(robot):
     chassis.drive(0.0, 0.0, 1.0, 1.0)
 
     for module, vector in zip(chassis._modules, vectors):
-        assert abs(module.direction - vector) < epsilon
+        assert abs(constrain_angle(module.direction - vector)) < epsilon
     reset_chassis(chassis)
 
     chassis.drive(1.0, 1.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert module.direction == math.pi / 4.0
-
+        assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
     reset_chassis(chassis)
 
 def test_angular_displacement():
@@ -108,9 +102,9 @@ def test_retain_wheel_direction(robot):
         module.steer(math.pi / 4.0)
     chassis.drive(0.0, 0.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert module.direction == math.pi / 4.0
+        assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
     # Should not matter what the throttle is, even if it is zero
     chassis.drive(0.0, 0.0, 0.0, 0.0)
     for module in chassis._modules:
-        assert module.direction == math.pi / 4.0
+        assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
 
