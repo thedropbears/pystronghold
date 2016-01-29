@@ -6,6 +6,7 @@ from wpilib import Resource
 import hal
 
 import logging
+import argparse
 
 class Vision:
     video_width = 320
@@ -41,7 +42,7 @@ class VisionProcess(multiprocessing.Process):
         if hal.HALIsSimulation():
             self.cap = VideoCaptureSim()
         else:
-            self.setup_capture(-1)
+            self.cap = setup_capture(-1)
         self.logger.info(self.cap)
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
@@ -112,13 +113,24 @@ class VisionProcess(multiprocessing.Process):
         x = ((2 * x) / Vision.video_width) - 1
         y = ((2 * y) / Vision.video_height) - 1
         return x, y, w, h, result_image
-    
-    def setup_capture(self, device_idx=-1):
-        self.cap = cv2.VideoCapture(device_idx)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
-    
+
+def setup_capture(device_idx=-1):
+    cap = cv2.VideoCapture(device_idx)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
+    return cap
+
 class VideoCaptureSim():
     def read(self):
         return False, None
 
+# Allow easy capturing of sample images using same settings as on robot
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Capture sample image.')
+    parser.add_argument('--device', help='capture device id', default=-1, type=int)
+    parser.add_argument('file')
+    args = parser.parse_args()
+    cap = setup_capture(args.device)
+    retval, img = cap.read()
+    if retval:
+        cv2.imwrite(args.file, img)
