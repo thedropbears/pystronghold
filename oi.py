@@ -2,6 +2,8 @@ import wpilib
 from wpilib import buttons
 
 from robot_map import RobotMap
+
+import math
 """
 ROBOT AXIS we use these axis mappings, which are different from the wpilib ones
       + X
@@ -27,6 +29,8 @@ class OI:
     This class is the glue that binds the controls on the physical operator
     interface to the example_command and command groups that allow control of the robot.
     """
+    gyro_reset_button = 2
+    field_orient_toggle_button = 3
 
     def __init__(self, robot):
         self.robot = robot
@@ -104,3 +108,8 @@ class OI:
 
     def getThrottle(self):
         return (self.joystick.getThrottle()-1.0)/-2.0
+
+    def fieldOrient(self, vx, vy, heading):
+        oriented_vx = vx*math.cos(heading) + -vy*math.sin(heading)
+        oriented_vy = vx*math.sin(heading) + vy*math.cos(heading)
+        return oriented_vx, oriented_vy
