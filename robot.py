@@ -8,6 +8,7 @@ from subsystems import Vision
 from subsystems import DriveMotors
 from subsystems import BNO055
 from subsystems import RangeFinder
+from subsystems import Shooter
 from oi import OI
 
 from robot_map import RobotMap
@@ -142,6 +143,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.omni_driving = True
         self.field_oriented = True
         self.omni_drive = omni_drive
+        self.shooter = Shooter(self)
         self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
         self.range_finder = RangeFinder()
