@@ -8,6 +8,7 @@ from subsystems import Vision
 from subsystems import BNO055
 from subsystems import RangeFinder
 from subsystems import Shooter
+from subsystems import Intake
 from oi import OI
 
 from robot_map import RobotMap
@@ -30,6 +31,12 @@ def omni_drive(robot):
                                 None
                                 )
         yield
+
+def run_intake(robot):
+    while robot.oi.joystick.getRawButton(1):
+        robot.intake.start()
+        yield
+    robot.intake.stop()
 
 def move_forward_time(robot):
     robot.omni_driving = False
@@ -119,7 +126,8 @@ def reset_gyro(robot):
     while robot.oi.joystick.getRawButton(robot.oi.gyro_reset_button):  # wait for 1 sec before toggling again
         yield
 
-taskmap = {2:reset_gyro,
+taskmap = {1:run_intake,
+           2:reset_gyro,
            3:toggle_field_oriented,
            7:move_forward_time,
            8:drive_motors,
@@ -142,6 +150,7 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.omni_driving = True
         self.field_oriented = True
         self.omni_drive = omni_drive
+        self.intake = Intake()
         self.shooter = Shooter(self)
         self.oi = OI(self)
         self.range_finder = RangeFinder()

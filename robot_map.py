@@ -19,9 +19,6 @@ class RobotMap:
     joystick_y_deadzone = 0.05
     joystick_z_deadzone = 0.4
 
-    drive_motors_motor_a_id = 2
-    drive_motors_motor_b_id = 5
-
     module_angular_tol = 0.02  # approx 1 deg
 
     range_finder_dio_channel = 0
