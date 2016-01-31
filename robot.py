@@ -5,7 +5,6 @@ import time
 
 from subsystems import Chassis
 from subsystems import Vision
-from subsystems import DriveMotors
 from subsystems import BNO055
 from subsystems import RangeFinder
 from subsystems import Shooter
@@ -144,7 +143,6 @@ class StrongholdRobot(wpilib.IterativeRobot):
         self.field_oriented = True
         self.omni_drive = omni_drive
         self.shooter = Shooter(self)
-        self.drive_motors = DriveMotors(self)
         self.oi = OI(self)
         self.range_finder = RangeFinder()
         self.bno055 = BNO055()
