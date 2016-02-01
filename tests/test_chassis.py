@@ -49,7 +49,7 @@ def reset_module(module):
         module._offset = 0.0
 
 def reset_chassis(chassis):
-    for module in chassis._modules:
+    for module in chassis._modules.values():
         reset_module(module)
 
 def test_chassis(robot, wpilib):
@@ -62,34 +62,34 @@ def test_chassis(robot, wpilib):
     reset_chassis(chassis)
     # test x axis
     chassis.drive(1.0, 0.0, 0.0, 1.0)
-    for module in chassis._modules:
+    for name, module in chassis._modules.items():
         assert abs(constrain_angle(module.direction)) % math.pi  < epsilon
     reset_chassis(chassis)
 
     # test y axis
     chassis.drive(0.0, 1.0, 0.0, 1.0)
-    for module in chassis._modules:
+    for name, module in chassis._modules.items():
         # test weather each module is facing in the right direction
         assert abs(constrain_angle(math.pi / 2.0 - module.direction)) < epsilon
     reset_chassis(chassis)
 
-    vz_a = math.atan2(-Chassis.length, Chassis.width)  # the angle that module a will go to if we spin on spot
-    vz_b = math.atan2(Chassis.length, Chassis.width)
-    vz_c = math.atan2(-Chassis.length, Chassis.width)
-    vz_d = math.atan2(Chassis.length, Chassis.width)
-
-    vectors = [vz_a, vz_b, vz_c, vz_d]
+    vz = {'a': math.atan2(-Chassis.length, Chassis.width),  # the angle that module a will go to if we spin on spot
+          'b': math.atan2(Chassis.length, Chassis.width),
+          'c': math.atan2(-Chassis.length, Chassis.width),
+          'd': math.atan2(Chassis.length, Chassis.width)
+          }
 
     chassis.drive(0.0, 0.0, 1.0, 1.0)
 
-    for module, vector in zip(chassis._modules, vectors):
-        assert abs(constrain_angle(module.direction - vector)) < epsilon
+    for name, module in chassis._modules.items():
+        assert abs(constrain_angle(module.direction - vz[name])) < epsilon
     reset_chassis(chassis)
 
     chassis.drive(1.0, 1.0, 0.0, 1.0)
-    for module in chassis._modules:
+    for module in chassis._modules.values():
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
     reset_chassis(chassis)
+
 
 def test_angular_displacement():
     assert abs(chassis.min_angular_displacement(0.0, math.pi / 4.0) - math.pi / 4.0) < epsilon
@@ -99,13 +99,13 @@ def test_retain_wheel_direction(robot):
     # When the joystick is returned to the centre, keep the last direction that the wheels were pointing
     robot.robotInit()
     chassis = robot.chassis
-    for module in chassis._modules:
+    for name, module in chassis._modules.items():
         module.steer(math.pi / 4.0)
     chassis.drive(0.0, 0.0, 0.0, 1.0)
-    for module in chassis._modules:
+    for name, module in chassis._modules.items():
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
     # Should not matter what the throttle is, even if it is zero
     chassis.drive(0.0, 0.0, 0.0, 0.0)
-    for module in chassis._modules:
+    for name, module in chassis._modules.items():
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
 

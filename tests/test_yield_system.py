@@ -14,7 +14,7 @@ def test_command_system(robot, control, fake_time, hal_data):
     hal_data["joysticks"][0]["buttons"][move_forward_seconds_button] = True
     control.run_test(lambda tm: tm < drive_fwd_seconds)
     assert len(robot.running) == 1
-    for mod in robot.chassis._modules:
+    for mod in robot.chassis._modules.values():
         assert mod.speed != 0.0
 
 def test_disabled(robot, control, fake_time):
@@ -47,7 +47,7 @@ def test_omni_drive(robot, control, fake_time, hal_data):
     # robot's throttle to 1.0
     hal_data['joysticks'][0][3] = -1.0
     control.run_test(lambda tm: tm < drive_fwd_seconds)
-    for module in robot.chassis._modules:
+    for module in robot.chassis._modules.values():
         assert (module.speed - 1.0) < epsilon
 
 def test_autonomous_start(robot, control, fake_time, hal_data):

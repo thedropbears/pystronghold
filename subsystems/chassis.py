@@ -8,27 +8,29 @@ import math
 import logging
 
 class Chassis():
-    # (drive_id, steer_id)
-    module_motors = {'a': {'drive':8, 'steer':10, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187},
-                     'b': {'drive':6, 'steer':7, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246},
-                     'c': {'drive':3, 'steer':4, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':257},
-                     'd': {'drive':1, 'steer':12, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':873}
-                     }
-
     length = 498.0  # mm
     width = 600.0  # mm
 
     motor_dist = math.sqrt((width / 2) ** 2 + (length / 2) ** 2)  # distance of motors from the center of the robot
 
     #                    x component                   y component
-    vz_components = ((width / 2) / motor_dist, (length / 2) / motor_dist)  # multiply both by vz and the
+    vz_components = {'x': (width / 2) / motor_dist, 'y': (length / 2) / motor_dist}  # multiply both by vz and the
 
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
-    motor_vz_scaling = [(-vz_components[0], vz_components[1]),
-                        (-vz_components[0], -vz_components[1]),
-                        (vz_components[0], -vz_components[1]),
-                        (vz_components[0], vz_components[1])]
+    module_params = {'a': {'args': {'drive':8, 'steer':10, 'absolute':True,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187},
+                           'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
+                     'b': {'args': {'drive':6, 'steer':7, 'absolute':True,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246},
+                           'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
+                     'c': {'args': {'drive':3, 'steer':4, 'absolute':True,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':257},
+                           'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
+                     'd': {'args': {'drive':1, 'steer':12, 'absolute':True,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':873},
+                           'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
+                     }
 
 
     def __init__(self, robot):
@@ -39,36 +41,41 @@ class Chassis():
         #  A - D
         #  |   |
         #  B - C
-        self._modules = []
-        for module_name in ["a", "b", "c", "d"]:
-            module_motor_params = Chassis.module_motors[module_name]
-            self._modules.append(SwerveModule(**module_motor_params))
+        self._modules = {}
+        for name, params in Chassis.module_params.items():
+            self._modules[name] = SwerveModule(**(params['args']))
 
     def drive(self, vX, vY, vZ, throttle):
         if self.robot.field_oriented and throttle is not None:
             vX, vY = self.robot.oi.fieldOrient(vX, vY, self.robot.bno055.getHeading())
-        motor_vectors = []
-        for scaling in Chassis.motor_vz_scaling:
-            motor_vectors.append((vX + vZ * scaling[0], vY + vZ * scaling[1]))
+        motor_vectors = {}
+        for name, params in Chassis.module_params.items():
+            motor_vectors[name] = {'x': vX + vZ * params['vz']['x'],
+                                   'y': vY + vZ * params['vz']['y']
+                                   }
         # convert the vectors to polar coordinates
-        polar = []
+        polar_vectors = {}
         max_mag = 1.0
-        for motor_vector in motor_vectors:
-            #                      direction                                                             magnitude
-            polar_vector = [math.atan2(motor_vector[1], motor_vector[0]), math.sqrt(motor_vector[0] ** 2 + motor_vector[1] ** 2)]
-            if abs(polar_vector[1]) > max_mag:
-                max_mag = polar_vector[1]
-            polar.append(polar_vector)
+        for name, motor_vector in motor_vectors.items():
+            polar_vectors[name] = {'dir': math.atan2(motor_vector['y'],
+                                                     motor_vector['x']
+                                                     ),
+                                   'mag': math.sqrt(motor_vector['x'] ** 2
+                                                    + motor_vector['y'] ** 2
+                                                    )
+                                   }
+            if abs(polar_vectors[name]['mag']) > max_mag:
+                max_mag = polar_vectors[name]['mag']
 
-        for polar_vector in polar:
-            polar_vector[1] /= max_mag
+        for name in polar_vectors.keys():
+            polar_vectors[name]['mag'] /= max_mag
             if throttle is None:
-                polar_vector[1] = None
+                polar_vectors[name]['mag'] = None
                 continue
-            polar_vector[1] *= throttle
+            polar_vectors[name]['mag'] *= throttle
 
-        for module, polar_vector in zip(self._modules, polar):
-            module.steer(polar_vector[0], polar_vector[1])
+        for name, polar_vector in polar_vectors.items():
+            self._modules[name].steer(polar_vector['dir'], polar_vector['mag'])
 
 
 class SwerveModule():
