@@ -46,6 +46,7 @@ def reset_module(module):
         module._steer.set(0.0)
         # Steer with no speed will drive to absolute position
         module.steer(0.0)
+        module._offset = 0.0
 
 def reset_chassis(chassis):
     for module in chassis._modules:
@@ -62,7 +63,7 @@ def test_chassis(robot, wpilib):
     # test x axis
     chassis.drive(1.0, 0.0, 0.0, 1.0)
     for module in chassis._modules:
-        assert abs(constrain_angle(module.direction)) < epsilon
+        assert abs(constrain_angle(module.direction)) % math.pi  < epsilon
     reset_chassis(chassis)
 
     # test y axis

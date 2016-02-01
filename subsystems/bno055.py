@@ -27,7 +27,6 @@ class BNO055(GyroBase):
 
         self.i2c = I2C(port, self.address, sim_port)
 
-        self.logger.info("Address: " + str(self.i2c.addressOnly()))
         # set the units that we want
         current_units = self.i2c.read(self.BNO055_UNIT_SEL_ADDR, 1)[0]
         for unit_list in self.BNO055_UNIT_SEL_LIST:

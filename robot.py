@@ -19,9 +19,9 @@ import math
 def omni_drive(robot):
     while robot.omni_driving:
         if robot.oi.joystick.getPOV() == -1:
-            robot.chassis.drive(robot.oi.getJoystickY(),
-                                robot.oi.getJoystickX(),
-                                robot.oi.getJoystickZ(),
+            robot.chassis.drive(-robot.oi.getJoystickY(),
+                                -robot.oi.getJoystickX(),
+                                -robot.oi.getJoystickZ(),
                                 robot.oi.getThrottle()
                                 )
         else:
@@ -165,13 +165,14 @@ class StrongholdRobot(wpilib.IterativeRobot):
 
     def disabledInit(self):
         self.vision_terminate_event.clear()
+        pass
 
     def disabledPeriodic(self):
         """This function is called periodically when disabled."""
         self.running = {}
         self.vision_terminate_event.clear()
         # self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
-        # self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
+        self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
 
     def autonomousInit(self):
         self.running = {}

@@ -9,10 +9,10 @@ import logging
 
 class Chassis():
     # (drive_id, steer_id)
-    module_motors = {'a': {'drive':8, 'steer':10, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246},
-                     'b': {'drive':6, 'steer':7, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':852},
-                     'c': {'drive':3, 'steer':4, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187},
-                     'd': {'drive':1, 'steer':12, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':263}
+    module_motors = {'a': {'drive':8, 'steer':10, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187},
+                     'b': {'drive':6, 'steer':7, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246},
+                     'c': {'drive':3, 'steer':4, 'absolute':True, 'reverse_drive':False, 'reverse_steer':True, 'zero_reading':257},
+                     'd': {'drive':1, 'steer':12, 'absolute':True, 'reverse_drive':True, 'reverse_steer':True, 'zero_reading':873}
                      }
 
     length = 498.0  # mm
@@ -36,14 +36,13 @@ class Chassis():
         super().__init__()
 
         self.robot = robot
-        # we want to create four swervemodules here
-        # the numbers here need to be replaced with constants from robotmap
         #  A - D
         #  |   |
         #  B - C
-        self._modules = [SwerveModule(**module_motor_params)
-                         for _, module_motor_params in Chassis.module_motors.items()
-                         ]
+        self._modules = []
+        for module_name in ["a", "b", "c", "d"]:
+            module_motor_params = Chassis.module_motors[module_name]
+            self._modules.append(SwerveModule(**module_motor_params))
 
     def drive(self, vX, vY, vZ, throttle):
         if self.robot.field_oriented and throttle is not None:
@@ -92,6 +91,8 @@ class SwerveModule():
             # Read the current encoder position
             self._steer.setPID(20.0, 0.0, 0.0)  # PID values for abs
             self._offset = zero_reading - 256.0
+            if reverse_steer:
+                self._offset = -self._offset
         else:
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
@@ -136,6 +137,8 @@ class SwerveModule():
             else:
                 self._drive.set(-speed)
             self._steer.set((self.direction + delta) * self.counts_per_radian + self._offset)
+        else:
+            self._drive.set(0.0)
 
 def constrain_angle(angle):
     return math.atan2(math.sin(angle), math.cos(angle))
