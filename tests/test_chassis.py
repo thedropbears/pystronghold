@@ -40,6 +40,18 @@ def test_swerve_steer():
     assert swerve.speed == -1.0
     assert abs(swerve.direction) < epsilon
 
+def test_dont_unwind_module(hal_data):
+    # If the modules are "wound up" (ie have rotated full revolutions)
+    # they should still go to the nearest correct angle
+    # Set module pointing forward but with two full revolutions
+    swerve = SwerveModule(0, 1)
+    hal_data['CAN'][1]['pos'] = 2048
+    swerve._steer.set(2048)
+    swerve.steer(0.0, 1.0)
+    assert abs(swerve.direction - 4.0 * math.pi) < epsilon
+    swerve.steer(math.pi / 4.0, 1.0)
+    assert abs(swerve.direction - 4.25 * math.pi) < epsilon
+
 def reset_module(module):
         # Set controller setpoints
         module._drive.set(0.0)
@@ -94,6 +106,10 @@ def test_chassis(robot, wpilib):
 def test_angular_displacement():
     assert abs(chassis.min_angular_displacement(0.0, math.pi / 4.0) - math.pi / 4.0) < epsilon
     assert abs(chassis.min_angular_displacement(0.0, math.pi * 3.0 / 4.0) - -math.pi / 4.0) < epsilon
+    # With wrap around:
+    assert abs(chassis.min_angular_displacement(4.0 * math.pi, math.pi / 4.0) - math.pi / 4.0) < epsilon
+    assert abs(chassis.min_angular_displacement(4.0 * math.pi, math.pi * 3.0 / 4.0) - -math.pi / 4.0) < epsilon
+
 
 def test_retain_wheel_direction(robot):
     # When the joystick is returned to the centre, keep the last direction that the wheels were pointing

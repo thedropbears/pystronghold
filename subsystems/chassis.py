@@ -100,6 +100,9 @@ class SwerveModule():
             self._offset = zero_reading - 256.0
             if reverse_steer:
                 self._offset = -self._offset
+            # Update the current setpoint to be the current position
+            # Stops the unwind problem
+            self._steer.set(self._steer.getSetpoint())
         else:
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
