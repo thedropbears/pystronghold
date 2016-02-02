@@ -102,6 +102,18 @@ def test_chassis(robot, wpilib):
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
     reset_chassis(chassis)
 
+def test_no_throttle(robot):
+    epsilon = 0.01  # Tolerance for angular floating point errors (~0.05 degrees)
+    robot.robotInit()
+    chassis = robot.chassis
+    reset_chassis(chassis)
+    # None for throttle should point the modules in the absolute direction
+    # for diagnostic purposes
+    chassis.drive(-1.0, -1.0, 0.0, None)
+    for module in chassis._modules.values():
+        assert abs(constrain_angle(module.direction + 3.0 / 4.0 * math.pi)) < epsilon
+    reset_chassis(chassis)
+
 
 def test_angular_displacement():
     assert abs(chassis.min_angular_displacement(0.0, math.pi / 4.0) - math.pi / 4.0) < epsilon
