@@ -10,6 +10,8 @@ from components.range_finder import RangeFinder
 from components.shooter import Shooter
 from components.intake import Intake
 
+from networktables import NetworkTable
+
 import logging
 import math
 
@@ -23,6 +25,7 @@ class StrongholdRobot(magicbot.MagicRobot):
 
     def createObjects(self):
         self.logger = logging.getLogger("robot")
+        self.sd = NetworkTable.getTable('SmartDashboard')
         self.intake_motor = wpilib.CANTalon(2)
         self.shooter_motor = wpilib.CANTalon(5)
         self.range_finder_counter = wpilib.Counter(0)
@@ -31,12 +34,19 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.gamepad = wpilib.Joystick(1)
         self.pressed_buttons = set()
 
+    def putData(self):
+        self.sd.putDouble("range_finder", self.range_finder.getDistance())
+        self.sd.putDouble("gyro", self.bno055.getHeading())
+        vision_array = self.vision.get()
+        if vision_array:
+            self.sd.putDouble("vision_x", vision_array[0])
+
     def disabledInit(self):
         pass
 
     def disabledPeriodic(self):
         """This function is called periodically when disabled."""
-        self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
+        self.putData()
 
     def teleopInit(self):
         pass
@@ -94,6 +104,7 @@ class StrongholdRobot(magicbot.MagicRobot):
                                     ]
         except:
             self.onException()
+        self.putData()
 
 
     def testPeriodic(self):
