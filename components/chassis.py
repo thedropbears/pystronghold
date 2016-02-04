@@ -20,16 +20,20 @@ class Chassis:
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
     module_params = {'a': {'args': {'drive':8, 'steer':10, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187},
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
                      'b': {'args': {'drive':6, 'steer':7, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246},
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
                      'c': {'args': {'drive':3, 'steer':4, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':257},
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':257,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
                      'd': {'args': {'drive':1, 'steer':12, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':873},
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':873,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }
 
@@ -124,11 +128,13 @@ class Chassis:
 class SwerveModule():
     def __init__(self, drive, steer,
                  absolute=True, reverse_drive=False,
-                 reverse_steer=False, zero_reading=0):
+                 reverse_steer=False, zero_reading=0,
+                 drive_encoder=False, reverse_drive_encoder=False):
         # Initialise private motor controllers
         self._drive = CANTalon(drive)
         self.reverse_drive = reverse_drive
         self._steer = CANTalon(steer)
+        self.drive_encoder = drive_encoder
 
         # Set up the motor controllers
         # Different depending on whether we are using absolute encoders or not
@@ -153,6 +159,45 @@ class SwerveModule():
             self.counts_per_radian = 497.0 * (40.0 / 48.0) * 4.0 / (2.0 * math.pi)
             self._offset = 0
 
+        if self.drive_encoder:
+            self.drive_counts_per_rev = 80*6.67
+            self.drive_counts_per_metre = self.drive_counts_per_rev*(math.pi*0.1016)
+            self.drive_max_speed = 5000
+            self._drive.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
+            self._drive.changeControlMode(CANTalon.ControlMode.Speed)
+            self._drive.reverseSensor(reverse_drive_encoder)
+        else:
+            self.drive_counts_per_rev = 0.0
+            self.drive_max_speed = 1.0
+            self.changeDriveControlMode(CANTalon.ControlMode.PercentVbus)
+
+    def changeDriveControlMode(self, control_mode):
+        if self._drive.getControlMode is not control_mode:
+            if control_mode == CANTalon.ControlMode.Speed:
+                self._drive.setPID(0.1, 0.0, 0.0, self.drive_counts_per_rev/1023.0)
+            elif control_mode == CANTalon.ControlMode.Position:
+                self._drive.setPID(0.1, 0.0, 0.0, 0.0)
+            self._drive.changeControlMode(control_mode)
+
+    def driveToPos(self, position, direction, reset_position):
+        if self.drive_encoder:
+            # position in meters
+            self.changeDriveControlMode(CANTalon.ControlMode.Position)
+            if self.reverse_drive:
+                position = -position
+            if reset_position:
+                # re-zero the relative encoder
+                self._drive.setSensorPosition(0.0)
+            direction = constrain_angle(direction)
+            current_heading = constrain_angle(self.direction)
+
+            delta = min_angular_displacement(current_heading, direction)
+            self._steer.set((self.direction+delta)*self.counts_per_radian+self._offset)
+
+            if abs(self._steer.getClosedLoopError()*self.counts_per_radian+self._offset) < 0.1:
+                # if we are within .1 of a radian of where we want to be
+                self._drive.set(position*self.drive_counts_per_metre)
+
     @property
     def direction(self):
         # Read the current direction from the controller setpoint
@@ -166,6 +211,10 @@ class SwerveModule():
         return float(setpoint)
 
     def steer(self, direction, speed=None):
+        if self.drive_encoder:
+            self.changeDriveControlMode(CANTalon.ControlMode.Speed)
+        else:
+            self.changeDriveControlMode(CANTalon.ControlMode.PercentVbus)
         # Set the speed and direction of the swerve module
         # Always choose the direction that minimises movement,
         # even if this means reversing the drive motor
@@ -186,9 +235,9 @@ class SwerveModule():
             if self.reverse_drive:
                 speed = -speed
             if abs(constrain_angle(self.direction) - direction) < math.pi / 6.0:
-                self._drive.set(speed)
+                self._drive.set(speed*self.drive_max_speed)
             else:
-                self._drive.set(-speed)
+                self._drive.set(-speed*self.drive_max_speed)
             self._steer.set((self.direction + delta) * self.counts_per_radian + self._offset)
         else:
             self._drive.set(0.0)
