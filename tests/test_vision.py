@@ -1,4 +1,4 @@
-from subsystems.vision import Vision
+from components.vision import Vision
 
 import csv
 import cv2
@@ -6,7 +6,7 @@ import multiprocessing
 
 def test_sample_images():
     variables = ['x', 'y', 'w', 'h']
-    vision = Vision(multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0]), multiprocessing.Event(), multiprocessing.Lock())
+    vision = Vision()
     with open('sample_img/tests.csv', 'r') as csvfile:
         # filename, x, y, w, h
         testreader = csv.reader(csvfile, delimiter=',')
@@ -14,8 +14,9 @@ def test_sample_images():
             image = cv2.imread('sample_img/' + sample[0])
             # Rescale if necessary
             scaled = cv2.resize(image, (Vision.video_width, Vision.video_height))
-            results = vision.findTarget(scaled)
+            results = vision._vision_process.findTarget(scaled)
             yield find_target, sample[0], results[:-1], sample[1:], [0.05, 0.05]  # Don't send the return image
+    vision.free()
 
 def find_target(filename, result, desired, deltas):
     message = filename + " - %s\nExpected: %s +/- %s\nReceived: %s"
