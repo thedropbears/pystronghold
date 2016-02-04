@@ -1,13 +1,14 @@
 
-from wpilib import CANTalon
-
-from robot_map import RobotMap
-
 import math
 
-import logging
+from wpilib import CANTalon
 
-class Chassis():
+from .bno055 import BNO055
+from .vision import Vision
+from .bno055 import BNO055
+from .range_finder import RangeFinder
+
+class Chassis:
     length = 498.0  # mm
     width = 600.0  # mm
 
@@ -32,22 +33,39 @@ class Chassis():
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }
 
+    # Use the magic here!
+    bno055 = BNO055
+    vision = Vision
+    range_finder = RangeFinder
 
-    def __init__(self, robot):
-
+    def __init__(self):
         super().__init__()
 
-        self.robot = robot
         #  A - D
         #  |   |
         #  B - C
         self._modules = {}
         for name, params in Chassis.module_params.items():
             self._modules[name] = SwerveModule(**(params['args']))
+        self.field_oriented = True
+        self.inputs = [0.0, 0.0, 0.0, None]
+        self.vx = self.vy = self.vz = 0.0
+        self.throttle = None
+        self.track_vision = False
+        self.range_setpoint = None
+        import robot
+        self.rescale_js = robot.rescale_js
+
+    def toggle_vision_tracking(self):
+        self.track_vision = not self.track_vision
+
+    def toggle_range_holding(self):
+        if self.range_setpoint == 0.0:
+            self.range_setpoint = 2.0
+        else:
+            self.range_setpoint = 0.0
 
     def drive(self, vX, vY, vZ, throttle):
-        if self.robot.field_oriented and throttle is not None:
-            vX, vY = self.robot.oi.fieldOrient(vX, vY, self.robot.bno055.getHeading())
         motor_vectors = {}
         for name, params in Chassis.module_params.items():
             motor_vectors[name] = {'x': vX + vZ * params['vz']['x'],
@@ -76,6 +94,31 @@ class Chassis():
 
         for name, polar_vector in polar_vectors.items():
             self._modules[name].steer(polar_vector['dir'], polar_vector['mag'])
+
+    def execute(self):
+        if self.field_oriented and self.inputs[3] is not None:
+            self.inputs[0:2] = field_orient(self.inputs[0], self.inputs[1], self.bno055.getHeading())
+        # Are we holding a range
+        if self.range_setpoint:
+            self.field_oriented = False
+            self.throttle = 1.0
+            self.vx = self.rescale_js(self.range_finder - self.range_setpoint, rate=0.3)
+        else:
+            self.vx = self.inputs[0]
+            self.throttle = self.inputs[3]
+        # Are we strafing to get the vision target in the centre
+        if self.track_vision:
+            self.field_oriented = False
+            self.throttle = 1.0
+            vision_data = self.vision.get()
+            if vision_data:  # Data is available and new
+                self.vy = self.rescale_js(vision_data[0], rate=0.3)
+        else:
+            self.vy = self.inputs[1]
+            self.throttle = self.inputs[3]
+        # TODO - use the gyro to hold heading here
+        self.vz = self.inputs[2]
+        self.drive(self.vy, self.vy, self.vz, self.throttle)
 
 
 class SwerveModule():
@@ -164,4 +207,7 @@ def min_angular_displacement(current, target):
         return diff
     return opp_diff
 
-
+def field_orient(vx, vy, heading):
+    oriented_vx = vx * math.cos(heading) + -vy * math.sin(heading)
+    oriented_vy = vx * math.sin(heading) + vy * math.cos(heading)
+    return oriented_vx, oriented_vy

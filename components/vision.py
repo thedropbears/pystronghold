@@ -1,4 +1,4 @@
-from multiprocessing import Process
+import multiprocessing
 import time
 import cv2
 import numpy as np
@@ -9,11 +9,35 @@ import logging
 video_width = 320
 video_height = 240
 
-class Vision(Process):
-    def __init__(self, vision_data_array, running_event, lock):
-        super().__init__(args=vision_data_array)
-        self.vision_data_array = vision_data_array
+class Vision:
+    def __init__(self):
+        self._data_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0])
         self.logger = logging.getLogger("vision")
+        self._vision_process = VisionProcess(self._data_array)
+        self._vision_process.start()
+        self.logger.info("Vision process started")
+        # Register with Resource so teardown works
+        Resource._add_global_resource(self)
+
+    def free(self):
+        self._vision_process.terminate()
+
+    def get(self):
+        if self._data_array[2] > 0.0 and self._data_array[4] == 1.0:
+            # New value and we have a target
+            return self._data_array[0:4]
+        else:
+            return None
+
+    def execute(self):
+        pass
+
+
+class VisionProcess(multiprocessing.Process):
+    def __init__(self, data_array):
+        super().__init__(args=(data_array,))
+        self.vision_data_array = data_array
+        self.logger = logging.getLogger("vision-process")
         if hal.HALIsSimulation():
             self.cap = VideoCaptureSim()
         else:
@@ -21,16 +45,14 @@ class Vision(Process):
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
         self.logger.info(self.cap)
-        self.running = running_event
-        self.running.set()
-        self.lock = lock
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
 
     def run(self):
         # counter = 0 # FPS counter
         tm = time.time()
-        while self.running.is_set():
+        self.logger.info("Process started")
+        while True:
             """ uncomment this and the counter above to get the fps
             counter += 1
             if counter >= 10:
@@ -39,15 +61,11 @@ class Vision(Process):
                 tm = time.time()
                 counter = 0"""
             success, image = self.cap.read()
-            with self.lock:
-                if success:
-                    x, y, w, h, image = self.findTarget(image)
-                    self.vision_data_array[:] = [x, y, w, h, 1]
-                else:
-                    self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, 1]
-
-    def free(self):
-        self.running.clear()
+            if success:
+                x, y, w, h, image = self.findTarget(image)
+                self.vision_data_array[:] = [x, y, w, h, 1]
+            else:
+                self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, 1]
 
     def findTarget(self, image):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.

@@ -1,243 +1,124 @@
 #!/usr/bin/env python3
 
 import wpilib
-import time
+import magicbot
 
-from subsystems import Chassis
-from subsystems import Vision
-from subsystems import BNO055
-from subsystems import RangeFinder
-from subsystems import Shooter
-from subsystems import Intake
-from oi import OI
+from components.chassis import Chassis
+from components.vision import Vision
+from components.bno055 import BNO055
+from components.range_finder import RangeFinder
+from components.shooter import Shooter
+from components.intake import Intake
 
-from robot_map import RobotMap
 import logging
-import multiprocessing
 import math
 
-def omni_drive(robot):
-    while robot.omni_driving:
-        if robot.oi.joystick.getPOV() == -1:
-            robot.chassis.drive(-robot.oi.getJoystickY(),
-                                -robot.oi.getJoystickX(),
-                                -robot.oi.getJoystickZ(),
-                                robot.oi.getThrottle()
-                                )
-        else:
-            robot.chassis.drive(math.cos(robot.oi.joystick.getPOV()*math.pi/180.0),
-                                -math.sin(robot.oi.joystick.getPOV()*math.pi/180.0),
-                                0.0,
-                                None
-                                )
-        yield
+class StrongholdRobot(magicbot.MagicRobot):
+    bno055 = BNO055
+    chassis = Chassis
+    intake = Intake
+    shooter = Shooter
+    range_finder = RangeFinder
+    vision = Vision
 
-def run_intake(robot):
-    while robot.oi.joystick.getRawButton(1):
-        robot.intake.start()
-        yield
-    robot.intake.stop()
-
-def move_forward_time(robot):
-    robot.omni_driving = False
-    tm = time.time()
-    while time.time() - tm < 2:  # Drive for 2 seconds
-        robot.chassis.drive(1.0, 0.0, 0.0, 1.0)
-        yield
-
-def strafe_with_vision(robot):
-    robot.omni_driving = False
-    x_offset = 0.0
-    alpha = 0.7
-    while True:
-        with robot.vision_lock:
-            if robot.vision_array[4] == 1:  # New value available
-                if robot.vision_array[3] == 0.0:
-                    robot.chassis.drive(0.0, 1.0, 0.0, 0.0)
-                    yield
-                else:
-                    x_offset = alpha * robot.vision_array[0] + (1.0 - alpha) * x_offset
-                    robot.chassis.drive(0.0, x_offset, 0.0, 0.5)
-                robot.vision_array[4] = 0  # Reset the "new value" flag
-        yield
-
-def move_with_rangefinder(robot):
-    robot.omni_driving = False
-    x_offset_cm = 0.0
-    x_offset_scaled = 0.0
-    desired_dist = 200  # cm
-    max_throttle = 0.3
-    alpha = 0.7
-    robot.logger.info("Rangefinder command init")
-    while True:
-        dist = robot.range_finder.getDistance()
-        x_offset_cm = dist - desired_dist
-        x_offset_scaled = x_offset_cm / desired_dist * max_throttle * alpha + x_offset_scaled * (1 - alpha)
-        if x_offset_scaled >= max_throttle:
-            x_offset_scaled = max_throttle
-        elif x_offset_scaled <= -max_throttle:
-            x_offset_scaled = -max_throttle
-        robot.logger.info(-x_offset_scaled)
-        robot.chassis.drive(-x_offset_scaled, 0.0, 0.0, 1.0)
-        yield
-
-def move_with_rangefinder_and_vision(robot):
-    robot.omni_driving = False
-    robot.field_oriented = False
-    range_finder_offset_cm = 0.0
-    range_finder_offset_scaled = 0.0
-    desired_dist = 200  # cm
-    max_throttle = 0.3
-    range_alpha = 0.7
-    vision_offset = 0.0
-    vision_alpha = 0.7
-    while True:
-        dist = robot.range_finder.getDistance()
-        range_finder_offset_cm = dist - desired_dist
-        range_finder_offset_scaled = range_finder_offset_cm / desired_dist * max_throttle * range_alpha + range_finder_offset_scaled * (1 - range_alpha)
-        if range_finder_offset_scaled >= max_throttle:
-            range_finder_offset_scaled = max_throttle
-        elif range_finder_offset_scaled <= -max_throttle:
-            range_finder_offset_scaled = -max_throttle
-        with robot.vision_lock:
-            if robot.vision_array[3] == 0.0:
-                robot.chassis.drive(-range_finder_offset_scaled, 0.0, 0.0, 1.0)
-            else:
-                vision_offset = vision_alpha * robot.vision_array[0] * max_throttle + (1.0 - vision_alpha) * vision_offset
-                robot.chassis.drive(-range_finder_offset_scaled, vision_offset, 0.0, 1.0)
-            robot.vision_array[4] = 0.0
-        yield
-
-def drive_motors(robot):
-    robot.omni_driving = False
-    robot.chassis.drive(0.0, 0.0, 0.0, 0.0)
-    while not robot.omni_driving:
-        robot.drive_motors.drive(robot.oi.getThrottle() * 2.0 - 1.0)
-        robot.logger.info(robot.oi.getThrottle() * 2.0 - 1.0)
-        yield
-
-def toggle_field_oriented(robot):
-    robot.field_oriented = not robot.field_oriented
-    while robot.oi.joystick.getRawButton(robot.oi.field_orient_toggle_button):  # wait for 1 sec before toggling again
-        yield
-
-def reset_gyro(robot):
-    robot.bno055.resetHeading()
-    while robot.oi.joystick.getRawButton(robot.oi.gyro_reset_button):  # wait for 1 sec before toggling again
-        yield
-
-taskmap = {1:run_intake,
-           2:reset_gyro,
-           3:toggle_field_oriented,
-           7:move_forward_time,
-           8:drive_motors,
-           9:strafe_with_vision,
-           10:move_with_rangefinder,
-           11:move_with_rangefinder_and_vision}
-
-
-move_forward_auto = [[move_forward_time]]
-
-class StrongholdRobot(wpilib.IterativeRobot):
-
-    logger = logging.getLogger("robot")
-    def robotInit(self):
-        """
-        This function is called upon program startup and
-        should be used for any initialization code.
-        """
-        self.running = {}
-        self.omni_driving = True
-        self.field_oriented = True
-        self.omni_drive = omni_drive
-        self.intake = Intake()
-        self.shooter = Shooter(self)
-        self.oi = OI(self)
-        self.range_finder = RangeFinder()
-        self.bno055 = BNO055()
-        self.chassis = Chassis(self)
-        self.auto_tasks = move_forward_auto  # [[list, of, tasks, to_go, through, sequentially], [and, this, list, will, run, in, parallel]
-        self.current_auto_tasks = []
-        self.vision_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0])
-        self.vision_terminate_event = multiprocessing.Event()
-        self.vision_lock = multiprocessing.Lock()
-        self.vision = Vision(self.vision_array, self.vision_terminate_event, self.vision_lock)
+    def createObjects(self):
+        self.logger = logging.getLogger("robot")
+        self.intake_motor = wpilib.CANTalon(2)
+        self.shooter_motor = wpilib.CANTalon(5)
+        self.range_finder_counter = wpilib.Counter(0)
+        self.range_finder_counter.setSemiPeriodMode(highSemiPeriod=True)
+        self.joystick = wpilib.Joystick(0)
+        self.gamepad = wpilib.Joystick(1)
+        self.pressed_buttons = set()
 
     def disabledInit(self):
-        self.vision_terminate_event.clear()
         pass
 
     def disabledPeriodic(self):
         """This function is called periodically when disabled."""
-        self.running = {}
-        self.vision_terminate_event.clear()
-        # self.logger.info("Euler: %f,%f,%f" % tuple(self.bno055.getAngles()))
         self.logger.info("Rangefinder: " + str(self.range_finder.getDistance()))
 
-    def autonomousInit(self):
-        self.running = {}
-        self.current_auto_tasks = self.auto_tasks
-        self.vision_terminate_event.set()
-        try:
-            self.vision.start()
-        except:
-            pass
-
-    def autonomousPeriodic(self):
-        """This function is called periodically during autonomous."""
-        # clear empty task sequences
-        for i in range(len(self.auto_tasks)):
-            if len(self.auto_tasks[i]) == 0:
-                self.auto_tasks[i].pop()
-        for command_sequence in self.current_auto_tasks:
-            if command_sequence[0] not in self.running:
-                ifunc = command_sequence[0](self).__next__
-                self.running[command_sequence[0]] = ifunc
-        done = []
-        for key, ifunc in self.running.items():
-            try:
-                ifunc()
-            except StopIteration:
-                done.append(key)
-        for key in done:
-            self.running.pop(key)
-            # remove the done task from our list of auto commands
-            for command_sequence in self.current_auto_tasks:
-                if key == command_sequence[0]:
-                    command_sequence.pop(0)
-
     def teleopInit(self):
-        self.running = {}
-        self.omni_driving = True
-        self.vision_terminate_event.set()
-        try:
-            self.vision.start()
-        except:
-            pass
+        pass
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
-        for button, task in taskmap.items():
-            # if the button for the task is pressed and the task is not already running
-            if self.oi.joystick.getRawButton(button) and task not in self.running:
-                ifunc = task(self).__next__
-                self.running[task] = ifunc
-        if self.omni_driving and self.omni_drive not in self.running:
-            ifunc = self.omni_drive(self).__next__
-            self.running[self.omni_drive] = ifunc
-        done = []
-        for key, ifunc in self.running.items():
-            try:
-                ifunc()
-            except StopIteration:
-                done.append(key)
-        for key in done:
-            self.running.pop(key)
-        # self.logger.info("Teleop periodic vision: " + str(self.vision_array[0]))
+        try:
+            if self.debounce(1):
+                self.intake.toggle()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(2):
+                self.chassis.toggle_field_oriented()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(3):
+                self.bno055.resetHeading()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(4):
+                self.chassis.toggle_vision_tracking()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(5):
+                self.chassis.toggle_range_holding()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(6):
+                self.shooter.toggle()
+        except:
+            self.onException()
+
+        try:
+            if self.joystick.getPOV() == -1:
+                self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05),
+                                    - rescale_js(self.joystick.getX(), deadzone=0.05),
+                                    - rescale_js(self.joystick.getZ(), deadzone=0.4),
+                                    (self.joystick.getThrottle() - 1.0) / -2.0
+                                    ]
+            else:
+                self.chassis.inputs = [math.cos(self.joystick.getPOV() * math.pi / 180.0),
+                                    - math.sin(self.joystick.getPOV() * math.pi / 180.0),
+                                    0.0,
+                                    None
+                                    ]
+        except:
+            self.onException()
+
 
     def testPeriodic(self):
         """This function is called periodically during test mode."""
         wpilib.LiveWindow.run()
+
+    def debounce(self, button):
+        if self.joystick.getRawButton(button):
+            if button in self.pressed_buttons:
+                return False
+            else:
+                self.pressed_buttons.add(button)
+                return True
+        else:
+            self.pressed_buttons.discard(button)
+
+def rescale_js(value, deadzone=0.0, exponential=0.0, rate=1.0):
+    # Cap to be +/-1
+    if abs(value) > 1.0:
+        value /= abs(value)
+    # Apply deadzone
+    if abs(value) < deadzone:
+        return 0.0
+    return value
+
 
 if __name__ == "__main__":
     wpilib.run(StrongholdRobot)

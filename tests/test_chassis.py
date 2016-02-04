@@ -1,9 +1,10 @@
 
 import math
+import pytest
 
-from subsystems.chassis import SwerveModule
-from subsystems.chassis import Chassis, constrain_angle
-from subsystems import chassis
+from components.chassis import SwerveModule
+from components.chassis import Chassis, constrain_angle
+from components import chassis
 
 epsilon = 0.01  # Tolerance for floating point errors (~0.5 degrees)
 
@@ -66,8 +67,7 @@ def reset_chassis(chassis):
 
 def test_chassis(robot, wpilib):
     epsilon = 0.01  # Tolerance for angular floating point errors (~0.05 degrees)
-    robot.robotInit()
-    chassis = robot.chassis
+    chassis = Chassis()
 
     # vX is out the left side of the robot, vY is out of the front, vZ is upwards, so a +ve rotation is counter-clockwise
     #             vX   vY   vZ   throttle
@@ -104,8 +104,7 @@ def test_chassis(robot, wpilib):
 
 def test_no_throttle(robot):
     epsilon = 0.01  # Tolerance for angular floating point errors (~0.05 degrees)
-    robot.robotInit()
-    chassis = robot.chassis
+    chassis = Chassis()
     reset_chassis(chassis)
     # None for throttle should point the modules in the absolute direction
     # for diagnostic purposes
@@ -125,8 +124,7 @@ def test_angular_displacement():
 
 def test_retain_wheel_direction(robot):
     # When the joystick is returned to the centre, keep the last direction that the wheels were pointing
-    robot.robotInit()
-    chassis = robot.chassis
+    chassis = Chassis()
     for name, module in chassis._modules.items():
         module.steer(math.pi / 4.0)
     chassis.drive(0.0, 0.0, 0.0, 1.0)

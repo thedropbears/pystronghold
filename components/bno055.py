@@ -82,6 +82,9 @@ class BNO055(GyroBase):
         else:
             return 0.0
 
+    def execute(self):
+        pass  # Keep MagicBot happy!
+
     """ I2C addresses, register addresses, and
     values to set registers to for the BNO055"""
     # i2c addresses for the gyro
