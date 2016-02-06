@@ -40,6 +40,11 @@ class StrongholdRobot(magicbot.MagicRobot):
         vision_array = self.vision.get()
         if vision_array:
             self.sd.putDouble("vision_x", vision_array[0])
+        self.sd.putDouble("vx", self.chassis.vx)
+        self.sd.putDouble("vy", self.chassis.vy)
+        self.sd.putDouble("vz", self.chassis.vz)
+        self.sd.putDouble("field_oriented", self.chassis.field_oriented)
+        self.sd.putDouble("motor_d_setpoint", self.chassis._modules["d"]._drive.getSetpoint())
 
     def disabledInit(self):
         pass

@@ -20,20 +20,20 @@ class Chassis:
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
     module_params = {'a': {'args': {'drive':8, 'steer':10, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':187,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':332,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
                      'b': {'args': {'drive':6, 'steer':7, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':246,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':162,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
-                     'c': {'args': {'drive':3, 'steer':4, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':257,
+                     'c': {'args': {'drive':3, 'steer':11, 'absolute':True,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':320,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
-                     'd': {'args': {'drive':1, 'steer':12, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':873,
-                                    'drive_encoder':True, 'reverse_drive_encoder':True},
+                     'd': {'args': {'drive':4, 'steer':12, 'absolute':True,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':606,
+                                    'drive_encoder':True, 'reverse_drive_encoder':False},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }
 
@@ -51,7 +51,7 @@ class Chassis:
         self._modules = {}
         for name, params in Chassis.module_params.items():
             self._modules[name] = SwerveModule(**(params['args']))
-        self.field_oriented = True
+        self.field_oriented = False
         self.inputs = [0.0, 0.0, 0.0, None]
         self.vx = self.vy = self.vz = 0.0
         self.throttle = None
@@ -59,6 +59,9 @@ class Chassis:
         self.range_setpoint = None
         import robot
         self.rescale_js = robot.rescale_js
+
+    def toggle_field_oriented(self):
+        self.field_oriented = not self.field_oriented
 
     def toggle_vision_tracking(self):
         self.track_vision = not self.track_vision
@@ -122,7 +125,7 @@ class Chassis:
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
         self.vz = self.inputs[2]
-        self.drive(self.vy, self.vy, self.vz, self.throttle)
+        self.drive(self.vx, self.vy, self.vz, self.throttle)
 
 
 class SwerveModule():
@@ -162,9 +165,9 @@ class SwerveModule():
         if self.drive_encoder:
             self.drive_counts_per_rev = 80*6.67
             self.drive_counts_per_metre = self.drive_counts_per_rev*(math.pi*0.1016)
-            self.drive_max_speed = 5000
+            self.drive_max_speed = 639
             self._drive.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
-            self._drive.changeControlMode(CANTalon.ControlMode.Speed)
+            self.changeDriveControlMode(CANTalon.ControlMode.Speed)
             self._drive.reverseSensor(reverse_drive_encoder)
         else:
             self.drive_counts_per_rev = 0.0
@@ -174,7 +177,7 @@ class SwerveModule():
     def changeDriveControlMode(self, control_mode):
         if self._drive.getControlMode is not control_mode:
             if control_mode == CANTalon.ControlMode.Speed:
-                self._drive.setPID(0.1, 0.0, 0.0, self.drive_counts_per_rev/1023.0)
+                self._drive.setPID(1.0, 0.0, 0.0, 1023.0/self.drive_max_speed)
             elif control_mode == CANTalon.ControlMode.Position:
                 self._drive.setPID(0.1, 0.0, 0.0, 0.0)
             self._drive.changeControlMode(control_mode)
