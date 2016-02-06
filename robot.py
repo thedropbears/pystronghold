@@ -44,7 +44,6 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("vy", self.chassis.vy)
         self.sd.putDouble("vz", self.chassis.vz)
         self.sd.putDouble("field_oriented", self.chassis.field_oriented)
-        self.sd.putDouble("motor_d_setpoint", self.chassis._modules["d"]._drive.getSetpoint())
 
     def disabledInit(self):
         pass
