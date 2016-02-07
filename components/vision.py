@@ -77,7 +77,7 @@ class VisionProcess(multiprocessing.Process):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # #Define the colours to look for (in HSV)
-        lower_colour = np.array([40, 200, 80])
+        lower_colour = np.array([40, 200, 20])
         upper_colour = np.array([110, 255, 150])
         # Create a mask that filters out only those colours
         mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
@@ -87,7 +87,6 @@ class VisionProcess(multiprocessing.Process):
         dilated = cv2.dilate(erosion, kernel, iterations=1)
         # Get the information for the contours
         _, contours, __ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        print(len(contours))
         # sort the contours into a list
         areas = [cv2.contourArea(contour) for contour in contours]
         # and retrieve the largest contour in the list
@@ -150,6 +149,7 @@ class VideoCaptureSim():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Capture sample image.')
     parser.add_argument('--device', help='capture device id', default=-1, type=int)
+    parser.add_argument('--video', help='display a live video feed of the capture', action='store_true')
     parser.add_argument('file')
     args = parser.parse_args()
     cap = setup_capture(args.device)
@@ -157,6 +157,15 @@ if __name__ == "__main__":
     print("Contrast: %f" % cap.get(cv2.CAP_PROP_CONTRAST))
     print("Saturation: %f" % cap.get(cv2.CAP_PROP_SATURATION))
     print("Gain: %f" % cap.get(cv2.CAP_PROP_GAIN))
-    retval, img = cap.read()
+    retval, image = cap.read()
     if retval:
-        cv2.imwrite(args.file, img)
+        x,y,w,h,image = VisionProcess.findTarget(None, image)
+        cv2.imwrite(args.file, image)
+    if args.video:
+        window = cv2.namedWindow("preview")
+        while True:
+            retval,image = cap.read()
+            img = VisionProcess.findTarget(None, image)
+            cv2.imshow("preview", image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
