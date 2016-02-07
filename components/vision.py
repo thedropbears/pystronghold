@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 import time
 import cv2
 import numpy as np
@@ -11,6 +12,12 @@ import argparse
 class Vision:
     video_width = 320
     video_height = 240
+    video_contrast = 0.5
+    video_brightness = 0.5
+    video_saturation = 0.5
+    video_exposure = 5 # min 3 max 2047
+    video_white_balance = 4000# min 2000 max 6500
+    video_gain = 0.0
     def __init__(self):
         self._data_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0])
         self.logger = logging.getLogger("vision")
@@ -70,28 +77,28 @@ class VisionProcess(multiprocessing.Process):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # #Define the colours to look for (in HSV)
-        lower_colour = np.array([40, 55, 210])
-        upper_colour = np.array([110, 220, 255])
+        lower_colour = np.array([40, 200, 80])
+        upper_colour = np.array([110, 255, 150])
         # Create a mask that filters out only those colours
         mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
-        # Blur and average the mask - smooth the pixels out
-        blurred = cv2.GaussianBlur(mask, (3, 3), 3, 3)
         # Errode and dialate the image to get rid of noise
         kernel = np.ones((4, 4), np.uint8)
-        erosion = cv2.erode(blurred, kernel, iterations=1)
-        dialated = cv2.dilate(erosion, kernel, iterations=1)
+        erosion = cv2.erode(mask, kernel, iterations=1)
+        dilated = cv2.dilate(erosion, kernel, iterations=1)
         # Get the information for the contours
-        _, contours, __ = cv2.findContours(dialated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours, __ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        print(len(contours))
         # sort the contours into a list
         areas = [cv2.contourArea(contour) for contour in contours]
         # and retrieve the largest contour in the list
+        cnt = None
         try:
-            max_index = np.argmax(areas)
+            cnt = contours[np.argmax(areas)]
         except ValueError:
             result_image = image
             return 0.0, 0.0, 0.0, 0.0, result_image
-        # define the largest contour
-        cnt = contours[max_index]
+
+
         # get the area of the contour
         area = cv2.contourArea(cnt)
         # get the perimeter of the contour
@@ -101,6 +108,7 @@ class VisionProcess(multiprocessing.Process):
         box = cv2.boxPoints(rect)
         box = np.int0(box)
         xy, wh, rotation_angle = cv2.minAreaRect(cnt)
+        #box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
         cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
         (xy, wh, rotation_angle) = (rect[0], rect[1], rect[2])
         result_image = image
@@ -118,6 +126,11 @@ def setup_capture(device_idx=-1):
     cap = cv2.VideoCapture(device_idx)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
+    device_string=str(device_idx)
+    if device_idx<0:
+        device_idx = str(0)
+    os.system("v4l2-ctl -d /dev/video"+device_idx+" -c exposure_auto=1 -c exposure_auto_priority=0 -c exposure_absolute="
+            + str(Vision.video_exposure) +" -c white_balance_temperature_auto=0 -c white_balance_temperature=" + str(Vision.video_white_balance))
     # On the Logitech C920 the following options cannot be set:
     # CAP_PROP_EXPOSURE
     # CAP_PROP_HUE
