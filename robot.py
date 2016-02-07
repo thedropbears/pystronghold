@@ -128,6 +128,7 @@ class StrongholdRobot(magicbot.MagicRobot):
                 return True
         else:
             self.pressed_buttons.discard(button)
+            return False
 
 def rescale_js(value, deadzone=0.0, exponential=0.0, rate=1.0):
     # Cap to be +/-1
