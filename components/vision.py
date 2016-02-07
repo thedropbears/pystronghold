@@ -31,7 +31,7 @@ class Vision:
         self._vision_process.terminate()
 
     def get(self):
-        if self._data_array[2] > 0.0 and self._data_array[4] == 1.0:
+        if self._data_array[2] > 0.0:
             # New value and we have a target
             return self._data_array[0:4]
         else:
@@ -69,9 +69,9 @@ class VisionProcess(multiprocessing.Process):
             success, image = self.cap.read()
             if success:
                 x, y, w, h, image = self.findTarget(image)
-                self.vision_data_array[:] = [x, y, w, h, 1]
+                self.vision_data_array[:] = [x, y, w, h, tm]
             else:
-                self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, 1]
+                self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, tm]
 
     def findTarget(self, image):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
