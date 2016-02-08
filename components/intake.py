@@ -5,19 +5,19 @@ class Intake:
     intake_motor = CANTalon
 
     def __init__(self):
-        self.running = False
+        self._speed = 0.0
 
-    def start(self):
-        self.running = True
+    def set_speed(self, speed):
+        self._speed = speed
 
     def stop(self):
-        self.running = False
+        self._speed = 0.0
 
-    def toggle(self):
-        self.running = not self.running
+    def toggle(self, speed=1.0):
+        if self._speed == 0.0:
+            self.set_speed(speed)
+        else:
+            self.set_speed(0.0)
 
     def execute(self):
-        if self.running:
-            self.intake_motor.set(1.0)
-        else:
-            self.intake_motor.set(0.0)
+        self.intake_motor.set(self._speed)
