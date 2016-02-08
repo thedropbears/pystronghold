@@ -8,24 +8,26 @@ class Shooter:
     shooter_motor = CANTalon
     shoot_encoder_cpr = 4096.0
     max_speed = 37000.0
+    shoot_percentage = 0.88
 
     def __init__(self):
         self._speed = 0.0
         self._changed_state = False
         self.initialised = False
 
-    def start(self):
-        self._speed = 0.88 * Shooter.max_speed
+    def set_speed(self, speed):
+        self._speed = speed * Shooter.max_speed
+        self._changed_state = True
 
     def stop(self):
         self._speed = 0.0
+        self._changed_state = True
 
-    def toggle(self):
+    def toggle(self, speed=shoot_percentage):
         if self._speed == 0.0:
-            self.start()
+            self.set_speed(speed)
         else:
             self.stop()
-        self._changed_state = True
 
     def execute(self):
         if not self.initialised:
