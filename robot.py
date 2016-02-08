@@ -48,6 +48,10 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("vy", self.chassis.vy)
         self.sd.putDouble("vz", self.chassis.vz)
         self.sd.putDouble("field_oriented", self.chassis.field_oriented)
+        self.sd.putDouble("raw_yaw", self.bno055.getRawHeading())
+        self.sd.putDouble("raw_pitch", self.bno055.getPitch())
+        self.sd.putDouble("raw_roll", self.bno055.getRoll())
+
 
     def disabledInit(self):
         pass

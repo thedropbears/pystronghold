@@ -37,7 +37,24 @@ class BNO055(GyroBase):
         self.i2c.write(self.BNO055_UNIT_SEL_ADDR, current_units)
         self.setOperationMode(self.OPERATION_MODE_IMUPLUS)  # accelerometer and gyro
         self.offset = 0.0
-        # self.setOperationMode(self.OPERATION_MODE_AMG)
+        self.reverse_axis(False, False, False)
+
+    def reverse_axis(self, x, y, z):
+        """Reverse the axis directions, xyz are booleans"""
+        current_directions = self.i2c.read(self.BNO055_AXIS_MAP_SIGN_ADDR, 1)[0]
+        if x:
+            current_directions = current_directions | (1 << 2)
+        else:
+            current_directions = current_directions & ~ (1 << 2)
+        if y:
+            current_directions = current_directions | (1 << 1)
+        else:
+            current_directions = current_directions & ~ (1 << 1)
+        if z:
+            current_directions = current_directions | (1 << 0)
+        else:
+            current_directions = current_directions & ~ (1 << 0)
+        self.i2c.write(self.BNO055_AXIS_MAP_SIGN_ADDR, current_directions)
 
     def setOperationMode(self, mode):
         if 0X00 <= mode <= 0X0C:  # ensure the operation mode is in the valid range
@@ -51,7 +68,7 @@ class BNO055(GyroBase):
         return self.getRawHeading() - self.offset
 
     def getRawHeading(self):
-        return self.getEuler(self.BNO055_EULER_H_LSB_ADDR)
+        return -self.getEuler(self.BNO055_EULER_H_LSB_ADDR)
 
     def getPitch(self):
         return self.getEuler(self.BNO055_EULER_P_LSB_ADDR)

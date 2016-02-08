@@ -6,7 +6,7 @@ epsilon = 0.01
 def test_euler_angles():
     bno055 = BNO055()
     heading, pitch, roll = bno055.getAngles()
-    assert abs(heading - BNO055Sim.heading) < epsilon
+    assert abs(heading - -BNO055Sim.heading) < epsilon #heading direction reversed in bno class
     assert abs(pitch - BNO055Sim.pitch) < epsilon
     assert abs(roll - BNO055Sim.roll) < epsilon
 
