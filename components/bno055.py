@@ -51,7 +51,7 @@ class BNO055(GyroBase):
         return self.getRawHeading() - self.offset
 
     def getRawHeading(self):
-        return -self.getEuler(self.BNO055_EULER_H_LSB_ADDR)
+        return self.getEuler(self.BNO055_EULER_H_LSB_ADDR)
 
     def getPitch(self):
         return self.getEuler(self.BNO055_EULER_P_LSB_ADDR)
