@@ -11,6 +11,7 @@ class LowBarTower:
     def on_enable(self):
         # Reset the IMU
         self.chassis.bno055.resetHeading()
+        self.chassis.heading_hold = True
 
     def on_disable(self):
         pass

@@ -3,7 +3,7 @@
 import wpilib
 import magicbot
 
-from components.chassis import Chassis
+from components.chassis import Chassis, HeadingHoldOutput
 from components.vision import Vision
 from components.bno055 import BNO055
 from components.range_finder import RangeFinder
@@ -16,7 +16,6 @@ import logging
 import math
 
 class StrongholdRobot(magicbot.MagicRobot):
-    bno055 = BNO055
     chassis = Chassis
     intake = Intake
     shooter = Shooter
@@ -26,13 +25,19 @@ class StrongholdRobot(magicbot.MagicRobot):
     def createObjects(self):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
-        self.intake_motor = wpilib.CANTalon(2)
-        self.shooter_motor = wpilib.CANTalon(5)
+        self.intake_motor = wpilib.CANTalon(3)
+        self.shooter_motor = wpilib.CANTalon(6)
         self.range_finder_counter = wpilib.Counter(0)
         self.range_finder_counter.setSemiPeriodMode(highSemiPeriod=True)
         self.joystick = wpilib.Joystick(0)
         self.gamepad = wpilib.Joystick(1)
         self.pressed_buttons = set()
+        # needs to be created here so we can pass it in to the PIDController
+        self.bno055 = BNO055()
+        self.heading_hold_pid_output = HeadingHoldOutput()
+        self.heading_hold_pid = wpilib.PIDController(0.1, 0.0, 0.0, self.bno055, self.heading_hold_pid_output)
+        self.heading_hold_pid.setContinuous(True)
+        self.heading_hold_pid.setInputRange(0.0, 2.0*math.pi)
 
     def putData(self):
         self.sd.putDouble("range_finder", self.range_finder.getDistance())
@@ -51,6 +56,8 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("raw_yaw", self.bno055.getRawHeading())
         self.sd.putDouble("raw_pitch", self.bno055.getPitch())
         self.sd.putDouble("raw_roll", self.bno055.getRoll())
+        self.sd.putDouble("shooter_speed", self.shooter._speed)
+        self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
 
 
     def disabledInit(self):
@@ -98,6 +105,12 @@ class StrongholdRobot(magicbot.MagicRobot):
         try:
             if self.debounce(6):
                 self.shooter.toggle()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(11):
+                self.chassis.toggle_heading_hold()
         except:
             self.onException()
 

@@ -8,9 +8,8 @@ import logging
 class BNO055(GyroBase):
     """Class to read euler values in radians from the I2C bus"""
 
-    PIDSourceType = PIDSource.PIDSourceType.kDisplacement
-
     def __init__(self, port=None, address=None):
+        super().__init__()
         self.address = address
         self.port = port
         if self.address is None:
@@ -60,6 +59,11 @@ class BNO055(GyroBase):
         if 0X00 <= mode <= 0X0C:  # ensure the operation mode is in the valid range
             self.i2c.write(self.BNO055_OPR_MODE_ADDR, mode)
 
+    def getAngle(self):
+        """Function called by the GyroBase's PID Source to get the
+        current measurement"""
+        return self.getHeading()
+
     def getAngles(self):
         """ Return the [heading, pitch, roll] of the gyro """
         return [self.getHeading(), self.getPitch(), self.getRoll()]
@@ -90,14 +94,6 @@ class BNO055(GyroBase):
 
     def resetHeading(self):
         self.offset = self.getRawHeading()
-
-    def pidGet(self):
-        if self.PIDSourceType == PidSource.PIDSourceType.kDisplacement:
-            return self.getAngles()[0]
-        elif self.PIDSourceType == PidSource.PIDSourceType.kRate:
-            return self.getRates()[0]
-        else:
-            return 0.0
 
     def execute(self):
         pass  # Keep MagicBot happy!

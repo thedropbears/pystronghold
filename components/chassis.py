@@ -1,11 +1,19 @@
 
 import math
 
-from wpilib import CANTalon
+from wpilib import CANTalon, PIDController
+from wpilib.interfaces import PIDOutput
 
 from .bno055 import BNO055
 from .vision import Vision
 from .range_finder import RangeFinder
+
+class HeadingHoldOutput(PIDOutput):
+    def __init__(self):
+        self.output = 0.0
+
+    def pidWrite(self, output):
+        self.output = output
 
 class Chassis:
     length = 498.0  # mm
@@ -22,11 +30,11 @@ class Chassis:
                                     'reverse_drive':True, 'reverse_steer':True, 'zero_reading':332,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
-                     'b': {'args': {'drive':6, 'steer':7, 'absolute':True,
+                     'b': {'args': {'drive':13, 'steer':7, 'absolute':True,
                                     'reverse_drive':False, 'reverse_steer':True, 'zero_reading':162,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
-                     'c': {'args': {'drive':3, 'steer':11, 'absolute':True,
+                     'c': {'args': {'drive':14, 'steer':11, 'absolute':True,
                                     'reverse_drive':False, 'reverse_steer':True, 'zero_reading':320,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
@@ -40,6 +48,8 @@ class Chassis:
     bno055 = BNO055
     vision = Vision
     range_finder = RangeFinder
+    heading_hold_pid_output = HeadingHoldOutput
+    heading_hold_pid = PIDController
 
     def __init__(self):
         super().__init__()
@@ -56,6 +66,7 @@ class Chassis:
         self.throttle = None
         self.track_vision = False
         self.range_setpoint = None
+        self.heading_hold = False
         import robot
         self.rescale_js = robot.rescale_js
 
@@ -104,6 +115,7 @@ class Chassis:
     def execute(self):
         if self.field_oriented and self.inputs[3] is not None:
             self.inputs[0:2] = field_orient(self.inputs[0], self.inputs[1], self.bno055.getHeading())
+
         # Are we holding a range
         if self.range_setpoint:
             self.field_oriented = False
@@ -123,9 +135,18 @@ class Chassis:
             self.vy = self.inputs[1]
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
-        self.vz = self.inputs[2]
+        if self.heading_hold and self.inputs[2] == 0.0:
+            # we are not getting a twist input, so do heading hold
+            self.heading_hold_pid.enable()
+            self.vz = self.heading_hold_pid_output.output
+        else:
+            self.heading_hold_pid.reset()
+            self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
+            self.vz = self.inputs[2]
         self.drive(self.vx, self.vy, self.vz, self.throttle)
 
+    def toggle_heading_hold(self):
+        self.heading_hold = not self.heading_hold
 
 class SwerveModule():
     def __init__(self, drive, steer,
