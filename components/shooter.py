@@ -34,7 +34,8 @@ class Shooter:
             self.shooter_motor.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self.shooter_motor.changeControlMode(CANTalon.ControlMode.Speed)
             self.shooter_motor.reverseSensor(True)
-            self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed)
+            self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed, izone=3000)
+            #self.shooter_motor.setPID(0.075, 0.000, 0, 1023.0 / Shooter.max_speed)
             self.initialised = True
 
         if self._changed_state:
