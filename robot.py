@@ -87,7 +87,7 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(5):
-                self.chassis.toggle_range_holding()
+                self.chassis.toggle_range_holding(2.0)  # 2m range
         except:
             self.onException()
 

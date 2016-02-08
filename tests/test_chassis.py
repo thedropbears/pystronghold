@@ -3,7 +3,7 @@ import math
 import pytest
 
 from components.chassis import SwerveModule
-from components.chassis import Chassis, constrain_angle
+from components.chassis import Chassis, constrain_angle, field_orient
 from components import chassis
 
 epsilon = 0.01  # Tolerance for floating point errors (~0.5 degrees)
@@ -122,7 +122,7 @@ def test_angular_displacement():
     assert abs(chassis.min_angular_displacement(4.0 * math.pi, math.pi * 3.0 / 4.0) - -math.pi / 4.0) < epsilon
 
 
-def test_retain_wheel_direction(robot):
+def test_retain_wheel_direction():
     # When the joystick is returned to the centre, keep the last direction that the wheels were pointing
     chassis = Chassis()
     for name, module in chassis._modules.items():
@@ -134,4 +134,37 @@ def test_retain_wheel_direction(robot):
     chassis.drive(0.0, 0.0, 0.0, 0.0)
     for name, module in chassis._modules.items():
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
+
+def test_toggle_field_oriented():
+    chassis = Chassis()
+    field_o = chassis.field_oriented
+    chassis.toggle_field_oriented()
+    assert chassis.field_oriented is not field_o
+    chassis.toggle_field_oriented()
+    assert chassis.field_oriented is field_o
+
+def test_toggle_track_vision():
+    chassis = Chassis()
+    vision = chassis.track_vision
+    chassis.toggle_vision_tracking()
+    assert chassis.track_vision is not vision
+    chassis.toggle_vision_tracking()
+    assert chassis.track_vision is vision
+
+def test_toggle_range_holding():
+    chassis = Chassis()
+    chassis.range_setpoint = 0.0
+    chassis.toggle_range_holding(2.0)
+    assert chassis.range_setpoint == 2.0
+    chassis.toggle_range_holding(2.0)
+    assert chassis.range_setpoint == 0.0
+
+def test_field_orient_calc():
+    vx, vy = field_orient(1.0, 1.0, -1.0 / 4.0 * math.pi)
+    assert abs(vx - 0.0) < epsilon
+    assert abs(vy - 2.0 ** 0.5) < epsilon
+    vx, vy = field_orient(1.0, 1.0, 1.0 / 4.0 * math.pi)
+    assert abs(vx - 2.0 ** 0.5) < epsilon
+    assert abs(vy - 0.0) < epsilon
+
 

@@ -66,9 +66,9 @@ class Chassis:
     def toggle_vision_tracking(self):
         self.track_vision = not self.track_vision
 
-    def toggle_range_holding(self):
+    def toggle_range_holding(self, setpoint):
         if self.range_setpoint == 0.0:
-            self.range_setpoint = 2.0
+            self.range_setpoint = setpoint
         else:
             self.range_setpoint = 0.0
 
@@ -260,6 +260,6 @@ def min_angular_displacement(current, target):
     return opp_diff
 
 def field_orient(vx, vy, heading):
-    oriented_vx = vx * math.cos(heading) + -vy * math.sin(heading)
-    oriented_vy = vx * math.sin(heading) + vy * math.cos(heading)
+    oriented_vx = vx * math.cos(heading) + vy * math.sin(heading)
+    oriented_vy = -vx * math.sin(heading) + vy * math.cos(heading)
     return oriented_vx, oriented_vy
