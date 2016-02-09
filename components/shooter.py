@@ -2,6 +2,11 @@ from wpilib import CANTalon
 
 import logging
 
+class States:
+    off = 0
+    shooting = 1
+    backdriving = 2
+
 class Shooter:
 #closed-loop controls for shooting mechanism
 
@@ -11,23 +16,37 @@ class Shooter:
     shoot_percentage = 0.88
 
     def __init__(self):
-        self._speed = 0.0
-        self._changed_state = False
+        self._changed_state = True
         self.initialised = False
+        self.state = States.off
+        self._speed = 0.0
 
-    def set_speed(self, speed):
-        self._speed = speed * Shooter.max_speed
+    def start_shoot(self):
+        self.state = States.shooting
         self._changed_state = True
 
     def stop(self):
-        self._speed = 0.0
+        self.state = States.off
         self._changed_state = True
 
-    def toggle(self, speed=shoot_percentage):
-        if self._speed == 0.0:
-            self.set_speed(speed)
-        else:
+    def toggle(self):
+        if self.state == States.off:
+            self.start_shoot()
+        elif self.state == States.shooting:
             self.stop()
+
+    def change_state(self, state):
+        if state != self.state:
+            self.state = state
+            self.changed_state = True
+
+    def on_enabled(self):
+        self.state = States.off
+        self._changed_state = True
+
+    def on_disabled(self):
+        self.state = States.off
+        self._changed_state = True
 
     def execute(self):
         if not self.initialised:
@@ -39,5 +58,11 @@ class Shooter:
             self.initialised = True
 
         if self._changed_state:
-            self.shooter_motor.set(-self._speed)
+            if self.state == States.shooting:
+                self._speed = -self.shoot_percentage*Shooter.max_speed
+            elif self.state == States.off:
+                self._speed = 0.0
+            elif self.state == States.backdriving:
+                self._speed = 0.3*Shooter.max_speed
             self._changed_state = False
+            self.shooter_motor.set(self._speed)
