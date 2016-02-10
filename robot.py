@@ -58,6 +58,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("raw_roll", self.bno055.getRoll())
         self.sd.putDouble("shooter_speed", self.shooter._speed)
         self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
+        self.sd.putDouble("intake_state", self.intake.state)
 
 
     def disabledInit(self):
@@ -105,6 +106,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         try:
             if self.debounce(6):
                 self.shooter.toggle()
+                self.intake.fire()
         except:
             self.onException()
 

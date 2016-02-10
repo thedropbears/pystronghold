@@ -38,7 +38,7 @@ class Shooter:
     def change_state(self, state):
         if state != self.state:
             self.state = state
-            self.changed_state = True
+            self._changed_state = True
 
     def on_enabled(self):
         self.state = States.off
@@ -60,9 +60,10 @@ class Shooter:
         if self._changed_state:
             if self.state == States.shooting:
                 self._speed = -self.shoot_percentage*Shooter.max_speed
+                logging.getLogger("shooter").info("fire away")
             elif self.state == States.off:
                 self._speed = 0.0
             elif self.state == States.backdriving:
-                self._speed = 0.3*Shooter.max_speed
+                self._speed = 0.01*Shooter.max_speed
             self._changed_state = False
             self.shooter_motor.set(self._speed)
