@@ -36,6 +36,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.bno055 = BNO055()
         self.heading_hold_pid_output = HeadingHoldOutput()
         self.heading_hold_pid = wpilib.PIDController(0.1, 0.0, 0.0, self.bno055, self.heading_hold_pid_output)
+        self.heading_hold_pid.PercentageTolerance_onTarget(3.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(0.0, 2.0*math.pi)
 

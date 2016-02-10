@@ -67,6 +67,9 @@ class Chassis:
         self.track_vision = False
         self.range_setpoint = None
         self.heading_hold = False
+        self.odometry = False
+        self.odometry_setpoint = 0.0 #metres
+        self.odometry_direction = 0.0 #radians
         import robot
         self.rescale_js = robot.rescale_js
 
@@ -77,7 +80,7 @@ class Chassis:
         self.track_vision = not self.track_vision
 
     def toggle_range_holding(self, setpoint):
-        if self.range_setpoint == 0.0:
+        if not self.range_setpoint:
             self.range_setpoint = setpoint
         else:
             self.range_setpoint = 0.0
@@ -112,6 +115,40 @@ class Chassis:
         for name, polar_vector in polar_vectors.items():
             self._modules[name].steer(polar_vector['dir'], polar_vector['mag'])
 
+    #@property
+    #def module_positions(self):
+     #   """Return the positions of the modules in metres"""
+      #  positions = []
+       # for module in self._modules:
+        #    position = module._drive.getPosition()
+         #   # TODO - possibly reverse position based on encoder settings
+          #  position /= module.counts_per_metre
+           # positions.append(position)
+        #return positions
+
+
+    def start_odometry(self, setpoint, direction):
+        """ Start the odometry by setting the flag and setpoints"""
+        self.odometry = True
+        self.odometry_setpoint = setpoint
+        self.odometry_direction = direction
+        self.heading_hold = True
+        self.heading_hold_pid.setSetpoint(0.0)
+        for module in self._modules:
+            module.setPosition(0.0)
+
+    def stop_odometry(self):
+        """Called when the odometry is finished"""
+        self.odometry = False
+        self.odometry_setpoint = 0.0
+        self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
+
+    def odometry_on_target(self, tolerance=0.5):#meters
+        """ Returns true if we are within tolerance meters of the target """
+        if self.odometry and abs(reduce(lambda x, y: x+y, self.module_positions)/len(self.module_positions) - self.odometry_setpoint) < tolerance:
+            return True
+        return False
+
     def execute(self):
         if self.field_oriented and self.inputs[3] is not None:
             self.inputs[0:2] = field_orient(self.inputs[0], self.inputs[1], self.bno055.getHeading())
@@ -120,8 +157,8 @@ class Chassis:
         if self.range_setpoint:
             self.field_oriented = False
             self.throttle = 1.0
-            self.vx = self.rescale_js(self.range_finder - self.range_setpoint, rate=0.3)
-        else:
+            self.vx = self.rescale_js(self.range_finder.getDistance() - self.range_setpoint, rate=0.3)
+        elif not self.odometry:
             self.vx = self.inputs[0]
             self.throttle = self.inputs[3]
         # Are we strafing to get the vision target in the centre
@@ -131,7 +168,7 @@ class Chassis:
             vision_data = self.vision.get()
             if vision_data:  # Data is available and new
                 self.vy = self.rescale_js(vision_data[0], rate=0.3)
-        else:
+        elif not self.odometry:
             self.vy = self.inputs[1]
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
@@ -143,6 +180,12 @@ class Chassis:
             self.heading_hold_pid.reset()
             self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
             self.vz = self.inputs[2]
+        if self.odometry:
+            if self.odometry_on_target():
+                self.stop_odometry()
+            else:
+                self.vx = math.cos(self.odometry_direction)
+                self.vy = math.sin(self.odometry_direction)
         self.drive(self.vx, self.vy, self.vz, self.throttle)
 
     def toggle_heading_hold(self):
@@ -201,25 +244,6 @@ class SwerveModule():
             elif control_mode == CANTalon.ControlMode.Position:
                 self._drive.setPID(0.1, 0.0, 0.0, 0.0)
             self._drive.changeControlMode(control_mode)
-
-    def driveToPos(self, position, direction, reset_position):
-        if self.drive_encoder:
-            # position in meters
-            self.changeDriveControlMode(CANTalon.ControlMode.Position)
-            if self.reverse_drive:
-                position = -position
-            if reset_position:
-                # re-zero the relative encoder
-                self._drive.setSensorPosition(0.0)
-            direction = constrain_angle(direction)
-            current_heading = constrain_angle(self.direction)
-
-            delta = min_angular_displacement(current_heading, direction)
-            self._steer.set((self.direction+delta)*self.counts_per_radian+self._offset)
-
-            if abs(self._steer.getClosedLoopError()*self.counts_per_radian+self._offset) < 0.1:
-                # if we are within .1 of a radian of where we want to be
-                self._drive.set(position*self.drive_counts_per_metre)
 
     @property
     def direction(self):
