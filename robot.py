@@ -151,13 +151,22 @@ class StrongholdRobot(magicbot.MagicRobot):
             return False
 
 def rescale_js(value, deadzone=0.0, exponential=0.0, rate=1.0):
+    value_negative = 1.0
+    if value < 0:
+        value_negative = -1.0
+        value = -value
     # Cap to be +/-1
     if abs(value) > 1.0:
         value /= abs(value)
     # Apply deadzone
     if abs(value) < deadzone:
         return 0.0
-    return value
+    elif exponential == 0.0:
+        value = (value-deadzone)/(1-deadzone)
+    else:
+        a = math.log(exponential+1)/(1-deadzone)
+        value = (math.exp(a*(value - deadzone))-1)/exponential
+    return value*value_negative*rate
 
 
 if __name__ == "__main__":

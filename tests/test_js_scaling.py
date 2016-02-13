@@ -9,9 +9,9 @@ def test_scaling_deadzone():
     assert rescale_js(1.0, deadzone=0.1) == 1.0
     assert rescale_js(-1.0, deadzone=0.1) == -1.0
     # Remaining range should be scaled evenly to avoid jumps around the deadzone value
-    assert rescale_js(0.6, deadzone=0.2) == 0.5
-    assert rescale_js(-0.6, deadzone=0.2) == -0.5
-    
+    assert abs(rescale_js(0.6, deadzone=0.2) - 0.5) < 0.05
+    assert abs(rescale_js(-0.6, deadzone=0.2) - -0.5) < 0.05
+
 def test_scaling_expo():
     # Exponential
     assert rescale_js(0.0, exponential=0.5) == 0.0
@@ -24,7 +24,7 @@ def test_scaling_expo():
     assert rescale_js(0.5, exponential=0.5) > rescale_js(0.5, exponential=0.6)
     assert rescale_js(-0.5, exponential=0.5) < rescale_js(-0.5, exponential=0.6)
     # Check symmetrical
-    assert rescale_js(0.5, exponential=0.5) == -rescale_js(0.5, exponential=0.5)
+    assert rescale_js(-0.5, exponential=0.5) == -rescale_js(0.5, exponential=0.5)
 
 def test_scaling_rates():
     # Check rates
@@ -37,11 +37,11 @@ def test_scaling_rates():
 def test_scaling_combo():
     # Check combination
     assert rescale_js(0.0, deadzone=0.2, exponential=0.2, rate=0.9) == 0.0
-    assert rescale_js(1.0, deadzone=0.2, exponential=0.2, rate=0.9) == 0.9
-    assert rescale_js(-1.0, deadzone=0.2, exponential=0.2, rate=0.9) == -0.9
+    assert (rescale_js(1.0, deadzone=0.2, exponential=0.2, rate=0.9) - 0.9) < 0.05
+    assert (rescale_js(-1.0, deadzone=0.2, exponential=0.2, rate=0.9) - -0.9) < 0.05
     # Test halfway point
     assert rescale_js(0.6, deadzone=0.2, exponential=0.2, rate=0.9) < 0.45
     assert rescale_js(-0.6, deadzone=0.2, exponential=0.2, rate=0.9) > -0.45
     assert rescale_js(0.6, deadzone=0.2, exponential=0.2, rate=0.9) == -rescale_js(-0.6, deadzone=0.2, exponential=0.2, rate=0.9)
 
-    
+
