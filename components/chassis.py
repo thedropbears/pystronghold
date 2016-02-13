@@ -70,6 +70,7 @@ class Chassis:
         self.odometry = False
         self.odometry_setpoint = 0.0 #metres
         self.odometry_direction = 0.0 #radians
+        self.lock_wheels = False
         import robot
         self.rescale_js = robot.rescale_js
 
@@ -186,7 +187,13 @@ class Chassis:
             else:
                 self.vx = math.cos(self.odometry_direction)
                 self.vy = math.sin(self.odometry_direction)
-        self.drive(self.vx, self.vy, self.vz, self.throttle)
+        elif self.lock_wheels:
+            for name, params, module in zip(Chassis.module_params.items(), self._modules):
+                x = params['vz']['x']
+                y = params['vz']['y']
+                direction = constrain_angle(math.atan2(params['vz']['y'], params['vz']['x']) + math.pi/2.0)
+        if not self.lock_wheels:
+            self.drive(self.vx, self.vy, self.vz, self.throttle)
 
     def toggle_heading_hold(self):
         self.heading_hold = not self.heading_hold
@@ -200,7 +207,13 @@ class SwerveModule():
         self._drive = CANTalon(drive)
         self.reverse_drive = reverse_drive
         self._steer = CANTalon(steer)
-        self.drive_encoder = drive_encoder # Set up the motor controllers # Different depending on whether we are using absolute encoders or not if absolute: self.counts_per_radian = 1024.0 / (2.0 * math.pi) self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.AnalogEncoder)
+        self.drive_encoder = drive_encoder
+
+        # Set up the motor controllers
+        # Different depending on whether we are using absolute encoders or not
+        if absolute:
+            self.counts_per_radian = 1024.0 / (2.0 * math.pi)
+            self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.AnalogEncoder)
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.reverseSensor(reverse_steer)
             self._steer.reverseOutput(not reverse_steer)

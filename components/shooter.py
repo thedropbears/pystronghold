@@ -1,5 +1,7 @@
 from wpilib import CANTalon
 
+from components.chassis import Chassis
+
 import logging
 
 class States:
@@ -11,6 +13,7 @@ class Shooter:
 #closed-loop controls for shooting mechanism
 
     shooter_motor = CANTalon
+    chassis = Chassis
     shoot_encoder_cpr = 4096.0
     max_speed = 37000.0
     shoot_percentage = 0.88
