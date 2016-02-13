@@ -25,8 +25,8 @@ class StrongholdRobot(magicbot.MagicRobot):
     def createObjects(self):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
-        self.intake_motor = wpilib.CANTalon(3)
-        self.shooter_motor = wpilib.CANTalon(6)
+        self.intake_motor = wpilib.CANTalon(7)
+        self.shooter_motor = wpilib.CANTalon(12)
         self.range_finder_counter = wpilib.Counter(0)
         self.range_finder_counter.setSemiPeriodMode(highSemiPeriod=True)
         self.joystick = wpilib.Joystick(0)
