@@ -3,6 +3,8 @@ from wpilib import CANTalon, PowerDistributionPanel
 
 from components import shooter
 
+import csv
+
 import logging
 from _collections import deque
 
@@ -22,8 +24,11 @@ class Intake:
         self._speed = 0.0
         self.state = States.no_ball
         self.current_deque = deque([0.0] * 5, 5)  # Used to average currents over last n readings
+        self.log_queue = []
+        self.log_current = True
 
     def toggle(self):
+        self.log_queue = []
         if self.state == States.intaking_free:
             self.state = States.no_ball
         else:
@@ -38,6 +43,8 @@ class Intake:
         maxlen = self.current_deque.maxlen
         current_avg = sum(self.current_deque) / maxlen
         current_rate = self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
+        if self.state != States.no_ball and self.state != States.pinned:
+            self.log_queue.append(current_avg)
 
         if self.state == States.no_ball:
             self._speed = 0.0
@@ -65,6 +72,11 @@ class Intake:
         if self.state == States.pinned:
             self.shooter.change_state(shooter.States.off)
             self._speed = 0.0
+            if self.log_current and self.log_queue:
+                csv_file = open("current_log.csv", "wb")
+                writer = csv.writer(csv_file)
+                writer.writerow(self.log_queue)
+                self.log_queue = []
 
         if self.state == States.fire:
             self.intake_motor.setVoltageRampRate(240.0)  # Max ramp rate
