@@ -75,44 +75,44 @@ class StrongholdRobot(magicbot.MagicRobot):
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
         try:
-            if self.debounce(1):
+            if self.debounce(2):
                 self.intake.toggle()
         except:
             self.onException()
 
         try:
-            if self.debounce(2):
+            if self.debounce(7):
                 self.chassis.toggle_field_oriented()
         except:
             self.onException()
 
         try:
-            if self.debounce(3):
+            if self.debounce(8):
                 self.bno055.resetHeading()
         except:
             self.onException()
 
         try:
-            if self.debounce(4):
+            if self.debounce(11):
                 self.chassis.toggle_vision_tracking()
         except:
             self.onException()
 
         try:
-            if self.debounce(5):
+            if self.debounce(12):
                 self.chassis.toggle_range_holding(2.0)  # 2m range
         except:
             self.onException()
 
         try:
-            if self.debounce(6):
+            if self.debounce(1):
                 self.shooter.toggle()
                 self.intake.fire()
         except:
             self.onException()
 
         try:
-            if self.debounce(11):
+            if self.debounce(5):
                 self.chassis.toggle_heading_hold()
         except:
             self.onException()

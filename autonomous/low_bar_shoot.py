@@ -27,7 +27,7 @@ class LowBarTower:
         self.chassis.bno055.resetHeading()
         self.chassis.heading_hold = False
         self.chassis.autonomous = True
-        self.state = States.goal_tracking
+        self.state = States.firing
 
     def on_disable(self):
         """Cleanup after auto routine"""
@@ -55,9 +55,11 @@ class LowBarTower:
             self.chassis.track_vision = True
             if abs(self.chassis.range_setpoint - self.chassis.range_finder.getDistance()) < 0.05 and abs(self.chassis.vy) < 0.1:
                 self.state = States.firing
+                self.chassis.range_setpoint = 0.0
+                self.chassis.track_vision = False
         if self.state == States.firing:
-            self.shooter.change_state(shooter.States.firing)
-            self.intake.state = states.fire
+            self.shooter.change_state(shooter.States.shooting)
+            self.intake.state = intake.States.fire
 
 class LowBarCentreTower(LowBarTower):
     MODE_NAME = "Low bar, CENTRE tower"

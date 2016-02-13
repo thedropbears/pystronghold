@@ -200,13 +200,7 @@ class SwerveModule():
         self._drive = CANTalon(drive)
         self.reverse_drive = reverse_drive
         self._steer = CANTalon(steer)
-        self.drive_encoder = drive_encoder
-
-        # Set up the motor controllers
-        # Different depending on whether we are using absolute encoders or not
-        if absolute:
-            self.counts_per_radian = 1024.0 / (2.0 * math.pi)
-            self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.AnalogEncoder)
+        self.drive_encoder = drive_encoder # Set up the motor controllers # Different depending on whether we are using absolute encoders or not if absolute: self.counts_per_radian = 1024.0 / (2.0 * math.pi) self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.AnalogEncoder)
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.reverseSensor(reverse_steer)
             self._steer.reverseOutput(not reverse_steer)
