@@ -25,17 +25,22 @@ class Intake:
         self.state = States.no_ball
         self.current_deque = deque([0.0] * 5, 5)  # Used to average currents over last n readings
         self.log_queue = []
-        self.log_current = True
 
     def toggle(self):
-        self.log_queue = []
-        if self.state == States.intaking_free:
+        if self.state != States.no_ball:
             self.state = States.no_ball
         else:
             self.state = States.intaking_free
+            self.log_current()
 
     def fire(self):
         self.state = States.fire
+
+    def log_current(self):
+        csv_file = open("/tmp/current_log.csv", "a")
+        csv_file.write(str(self.log_queue).strip('[]').replace(' ', ''))
+        csv_file.close()
+        self.log_queue = []
 
     def execute(self):
         # add next reading on right, will automatically pop on left
@@ -57,7 +62,7 @@ class Intake:
                 self.state = States.intaking_contact
 
         if self.state == States.intaking_contact:
-            self.shooter.change_state(shooter.States.off)
+            #self.shooter.change_state(shooter.States.off)
             self._speed = 1.0
             if current_avg < 5 and current_rate <= 0.0:  # amps
                 self.state = States.pinning
@@ -66,17 +71,14 @@ class Intake:
             self._speed = -0.35
             self.shooter.change_state(shooter.States.backdriving)
             self.intake_motor.setVoltageRampRate(120.0)  # Max ramp rate
-            if current_avg > 4 and current_rate >= 0.0:
+            if current_avg > 3 and current_rate >= 0.0:
                 self.state = States.pinned
 
         if self.state == States.pinned:
             self.shooter.change_state(shooter.States.off)
             self._speed = 0.0
-            if self.log_current and self.log_queue:
-                csv_file = open("current_log.csv", "wb")
-                writer = csv.writer(csv_file)
-                writer.writerow(self.log_queue)
-                self.log_queue = []
+            if self.log_queue:
+                self.log_current()
 
         if self.state == States.fire:
             self.intake_motor.setVoltageRampRate(240.0)  # Max ramp rate
