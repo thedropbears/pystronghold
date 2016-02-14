@@ -3,7 +3,7 @@ from wpilib import CANTalon, PowerDistributionPanel
 
 from components import shooter
 
-import csv
+import csv, time
 
 import logging
 from _collections import deque
@@ -23,33 +23,35 @@ class Intake:
     def __init__(self):
         self._speed = 0.0
         self.state = States.no_ball
-        self.current_deque = deque([0.0] * 5, 5)  # Used to average currents over last n readings
+        self.current_deque = deque([0.0] * 3, 3)  # Used to average currents over last n readings
         self.log_queue = []
+        self.intake_time = 0.0
 
     def toggle(self):
         if self.state != States.no_ball:
             self.state = States.no_ball
+            self.log_current()
         else:
             self.state = States.intaking_free
-            self.log_current()
 
     def fire(self):
         self.state = States.fire
 
     def log_current(self):
         csv_file = open("/tmp/current_log.csv", "a")
-        csv_file.write(str(self.log_queue).strip('[]').replace(' ', ''))
+        csv_file.write(str(self.log_queue).strip('[]').replace(' ', '')+"\n")
         csv_file.close()
         self.log_queue = []
 
     def execute(self):
         # add next reading on right, will automatically pop on left
-        self.current_deque.append(self.intake_motor.getOutputCurrent())
         maxlen = self.current_deque.maxlen
+        prev_current_avg = sum(self.current_deque)/maxlen
+        self.current_deque.append(self.intake_motor.getOutputCurrent())
         current_avg = sum(self.current_deque) / maxlen
-        current_rate = self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
+        current_rate = current_avg - prev_current_avg#self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
         if self.state != States.no_ball and self.state != States.pinned:
-            self.log_queue.append(current_avg)
+            self.log_queue.append(self.current_deque[maxlen-1])
 
         if self.state == States.no_ball:
             self._speed = 0.0
@@ -58,20 +60,23 @@ class Intake:
             self.shooter.change_state(shooter.States.off)
             self.intake_motor.setVoltageRampRate(6.0)  # V/s
             self._speed = 1.0
-            if current_avg > 2.0 and current_rate >= 0.0:  # amps
+            if current_avg > 4.0:# and current_rate >= 0.0:  # amps
                 self.state = States.intaking_contact
+                self.intake_time = time.time()
 
         if self.state == States.intaking_contact:
-            #self.shooter.change_state(shooter.States.off)
+            """#self.shooter.change_state(shooter.States.off)
             self._speed = 1.0
-            if current_avg < 5 and current_rate <= 0.0:  # amps
+            if current_avg < 4.0:# and current_rate <= 0.0:  # amps
+                self.state = States.pinning"""
+            if time.time() - self.intake_time > 0.5:
                 self.state = States.pinning
 
         if self.state == States.pinning:
-            self._speed = -0.35
+            self._speed = -0.3
             self.shooter.change_state(shooter.States.backdriving)
             self.intake_motor.setVoltageRampRate(120.0)  # Max ramp rate
-            if current_avg > 3 and current_rate >= 0.0:
+            if current_avg > 4 and current_rate >= 0.0:
                 self.state = States.pinned
 
         if self.state == States.pinned:
