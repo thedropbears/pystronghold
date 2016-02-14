@@ -8,7 +8,7 @@ from .bno055 import BNO055
 from .vision import Vision
 from .range_finder import RangeFinder
 
-class HeadingHoldOutput(PIDOutput):
+class BlankPIDOutput(PIDOutput):
     def __init__(self):
         self.output = 0.0
 
@@ -26,7 +26,7 @@ class Chassis:
 
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
-    module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
+    """module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
                                     'reverse_drive':True, 'reverse_steer':True, 'zero_reading':332,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
@@ -42,13 +42,30 @@ class Chassis:
                                     'reverse_drive':True, 'reverse_steer':True, 'zero_reading':606,
                                     'drive_encoder':True, 'reverse_drive_encoder':False},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
+                     }"""
+    module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':False,
+                                    'reverse_drive':True, 'reverse_steer':False, 'zero_reading':332,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
+                           'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
+                     'b': {'args': {'drive':8, 'steer':9, 'absolute':True,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':160,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
+                           'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
+                     'c': {'args': {'drive':2, 'steer':4, 'absolute':True,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':307,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
+                           'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
+                     'd': {'args': {'drive':3, 'steer':6, 'absolute':True,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':594,
+                                    'drive_encoder':True, 'reverse_drive_encoder':False},
+                           'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }
 
     # Use the magic here!
     bno055 = BNO055
     vision = Vision
     range_finder = RangeFinder
-    heading_hold_pid_output = HeadingHoldOutput
+    heading_hold_pid_output = BlankPIDOutput
     heading_hold_pid = PIDController
 
     def __init__(self):
@@ -60,19 +77,31 @@ class Chassis:
         self._modules = {}
         for name, params in Chassis.module_params.items():
             self._modules[name] = SwerveModule(**(params['args']))
-        self.field_oriented = False
+        self.field_oriented = True
         self.inputs = [0.0, 0.0, 0.0, None]
         self.vx = self.vy = self.vz = 0.0
         self.throttle = None
         self.track_vision = False
         self.range_setpoint = None
-        self.heading_hold = False
+        self.heading_hold = True
         self.odometry = False
         self.odometry_setpoint = 0.0 #metres
         self.odometry_direction = 0.0 #radians
         self.lock_wheels = False
+        self.vision_pid_output = BlankPIDOutput()
+        self.vision_pid = PIDController(1.0, 0.0, 0.0, self.vision, self.vision_pid_output)
+        self.vision_pid.PercentageTolerance_onTarget = 5.0
+        self.vision_pid.setContinuous(False)
+        self.vision_pid.setInputRange(-1.0, 1.0)
+        self.vision_pid.setOutputRange(-0.3, 0.3)
         import robot
         self.rescale_js = robot.rescale_js
+
+    def on_enable(self):
+        self.bno055.resetHeading()
+        self.heading_hold = True
+        self.field_oriented = True
+        self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
 
     def toggle_field_oriented(self):
         self.field_oriented = not self.field_oriented
@@ -165,10 +194,7 @@ class Chassis:
         # Are we strafing to get the vision target in the centre
         if self.track_vision:
             self.field_oriented = False
-            self.throttle = 1.0
-            vision_data = self.vision.get()
-            if vision_data:  # Data is available and new
-                self.vy = self.rescale_js(vision_data[0], rate=0.3)
+            self.vy = self.vision_pid_output.output
         elif not self.odometry:
             self.vy = self.inputs[1]
             self.throttle = self.inputs[3]
@@ -178,7 +204,6 @@ class Chassis:
             self.heading_hold_pid.enable()
             self.vz = self.heading_hold_pid_output.output
         else:
-            self.heading_hold_pid.reset()
             self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
             self.vz = self.inputs[2]
         if self.odometry:
@@ -231,6 +256,7 @@ class SwerveModule():
             self._steer.setPID(6.0, 0.0, 0.0)  # PID values for rel
             self.counts_per_radian = 497.0 * (40.0 / 48.0) * 4.0 / (2.0 * math.pi)
             self._offset = 0
+            self._steer.setPosition(0.0)
 
         if self.drive_encoder:
             self.drive_counts_per_rev = 80*6.67

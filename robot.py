@@ -3,7 +3,7 @@
 import wpilib
 import magicbot
 
-from components.chassis import Chassis, HeadingHoldOutput
+from components.chassis import Chassis, BlankPIDOutput
 from components.vision import Vision
 from components.bno055 import BNO055
 from components.range_finder import RangeFinder
@@ -34,11 +34,11 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.pressed_buttons = set()
         # needs to be created here so we can pass it in to the PIDController
         self.bno055 = BNO055()
-        self.heading_hold_pid_output = HeadingHoldOutput()
-        self.heading_hold_pid = wpilib.PIDController(0.1, 0.0, 0.0, self.bno055, self.heading_hold_pid_output)
+        self.heading_hold_pid_output = BlankPIDOutput()
+        self.heading_hold_pid = wpilib.PIDController(0.5, 0.0, 0.0, self.bno055, self.heading_hold_pid_output)
         self.heading_hold_pid.PercentageTolerance_onTarget(3.0)
         self.heading_hold_pid.setContinuous(True)
-        self.heading_hold_pid.setInputRange(0.0, 2.0*math.pi)
+        self.heading_hold_pid.setInputRange(-math.pi, math.pi)
 
     def putData(self):
         self.sd.putDouble("range_finder", self.range_finder.getDistance())
@@ -59,7 +59,10 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("raw_roll", self.bno055.getRoll())
         self.sd.putDouble("shooter_speed", self.shooter._speed)
         self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
+        self.sd.putDouble("heading_hold_pid_setpoint", self.heading_hold_pid.getSetpoint())
         self.sd.putDouble("intake_state", self.intake.state)
+        self.sd.putDouble("vision_pid_output", self.chassis.vision_pid_output.output)
+        self.sd.putBoolean("track_vision", self.chassis.track_vision)
 
 
     def disabledInit(self):
@@ -121,7 +124,7 @@ class StrongholdRobot(magicbot.MagicRobot):
             if self.joystick.getPOV() == -1:
                 self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05),
                                     - rescale_js(self.joystick.getX(), deadzone=0.05),
-                                    - rescale_js(self.joystick.getZ(), deadzone=0.4),
+                                    - rescale_js(self.joystick.getZ(), deadzone=0.4, exponential=0.3),
                                     (self.joystick.getThrottle() - 1.0) / -2.0
                                     ]
             else:

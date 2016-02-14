@@ -89,6 +89,5 @@ class Intake:
             self.intake_motor.setVoltageRampRate(240.0)  # Max ramp rate
             if abs(self.shooter.shooter_motor.getClosedLoopError())<= 0.02*(self.shooter.max_speed) and self.shooter._speed != 0.0:
                 self._speed = 1.0
-                logging.getLogger("intake").info("fire away")
 
         self.intake_motor.set(-self._speed)
