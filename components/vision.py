@@ -17,20 +17,24 @@ class Vision:
     video_contrast = 0.5
     video_brightness = 0.5
     video_saturation = 0.5
-    video_exposure = 5 # min 3 max 2047
-    video_white_balance = 4000# min 2000 max 6500
+    video_exposure = 5  # min 3 max 2047
+    video_white_balance = 4000  # min 2000 max 6500
     video_gain = 0.0
     def __init__(self):
         self._data_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0])
+        self._process_run_event = multiprocessing.Event()
         self.logger = logging.getLogger("vision")
-        self._vision_process = VisionProcess(self._data_array)
+        self._vision_process = VisionProcess(self._data_array, self._process_run_event)
+        # self._vision_process.daemon = True
+        self._process_run_event.set()
         self._vision_process.start()
         self.logger.info("Vision process started")
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
 
     def free(self):
-        self._vision_process.terminate()
+        self._process_run_event.clear()
+        self._vision_process.join()
 
     def get(self):
         if self._data_array[2] > 0.0:
@@ -50,9 +54,10 @@ class Vision:
 
 
 class VisionProcess(multiprocessing.Process):
-    def __init__(self, data_array):
+    def __init__(self, data_array, run_event):
         super().__init__(args=(data_array,))
         self.vision_data_array = data_array
+        self._run_event = run_event
         self.logger = logging.getLogger("vision-process")
         if hal.HALIsSimulation():
             self.cap = VideoCaptureSim()
@@ -64,10 +69,10 @@ class VisionProcess(multiprocessing.Process):
 
     def run(self):
         # counter = 0 # FPS counter
-        tm = time.time()
+        # tm = time.time()
         self.logger.info("Process started")
         with suppress_stdout_stderr():
-            while True:
+            while self._run_event.is_set():
                 """ uncomment this and the counter above to get the fps
                 counter += 1
                 if counter >= 10:
@@ -116,7 +121,7 @@ class VisionProcess(multiprocessing.Process):
         box = cv2.boxPoints(rect)
         box = np.int0(box)
         xy, wh, rotation_angle = cv2.minAreaRect(cnt)
-        #box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
+        # box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
         cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
         (xy, wh, rotation_angle) = (rect[0], rect[1], rect[2])
         result_image = image
@@ -134,11 +139,11 @@ def setup_capture(device_idx=-1):
     cap = cv2.VideoCapture(device_idx)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
-    device_string=str(device_idx)
-    if device_idx<0:
+    device_string = str(device_idx)
+    if device_idx < 0:
         device_idx = str(0)
-    os.system("v4l2-ctl -d /dev/video"+device_idx+" -c exposure_auto=1 -c exposure_auto_priority=0 -c exposure_absolute="
-            + str(Vision.video_exposure) +" -c white_balance_temperature_auto=0 -c white_balance_temperature=" + str(Vision.video_white_balance))
+    os.system("v4l2-ctl -d /dev/video" + device_idx + " -c exposure_auto=1 -c exposure_auto_priority=0 -c exposure_absolute="
+            + str(Vision.video_exposure) + " -c white_balance_temperature_auto=0 -c white_balance_temperature=" + str(Vision.video_white_balance))
     # On the Logitech C920 the following options cannot be set:
     # CAP_PROP_EXPOSURE
     # CAP_PROP_HUE
@@ -168,12 +173,12 @@ if __name__ == "__main__":
     print("Gain: %f" % cap.get(cv2.CAP_PROP_GAIN))
     retval, image = cap.read()
     if retval:
-        x,y,w,h,image = VisionProcess.findTarget(None, image)
+        x, y, w, h, image = VisionProcess.findTarget(None, image)
         cv2.imwrite(args.file, image)
     if args.video:
         window = cv2.namedWindow("preview")
         while True:
-            retval,image = cap.read()
+            retval, image = cap.read()
             img = VisionProcess.findTarget(None, image)
             cv2.imshow("preview", image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
