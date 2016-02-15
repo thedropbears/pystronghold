@@ -158,7 +158,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Capture sample image.')
     parser.add_argument('--device', help='capture device id', default=-1, type=int)
     parser.add_argument('--video', help='display a live video feed of the capture', action='store_true')
-    parser.add_argument('file')
+    parser.add_argument('--file', help="capture image to a file", type=str, default=None)
+    parser.add_argument('--verbose',
+            help='print the values coming back from the findTarget function for a specific file', type=str,
+            default = None)
     args = parser.parse_args()
     cap = setup_capture(args.device)
     print("Brightness: %f" % cap.get(cv2.CAP_PROP_BRIGHTNESS))
@@ -166,9 +169,13 @@ if __name__ == "__main__":
     print("Saturation: %f" % cap.get(cv2.CAP_PROP_SATURATION))
     print("Gain: %f" % cap.get(cv2.CAP_PROP_GAIN))
     retval, image = cap.read()
-    if retval:
+    if retval and args.file:
         x, y, w, h, image = VisionProcess.findTarget(None, image)
         cv2.imwrite(args.file, image)
+    if args.verbose:
+        image = cv2.imread(args.verbose, cv2.IMREAD_COLOR)
+        x, y, w, h, image = VisionProcess.findTarget(None, image)
+        print("x: %f\ny: %f\nwidth: %f\nheight: %f\n" % (x, y, w, h))
     if args.video:
         window = cv2.namedWindow("preview")
         while True:
