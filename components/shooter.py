@@ -16,7 +16,7 @@ class Shooter:
     chassis = Chassis
     shoot_encoder_cpr = 4096.0
     max_speed = 37000.0
-    shoot_percentage = 0.88
+    shoot_percentage = 0.65
 
     def __init__(self):
         self._changed_state = True
@@ -57,6 +57,7 @@ class Shooter:
             self.shooter_motor.changeControlMode(CANTalon.ControlMode.Speed)
             self.shooter_motor.reverseSensor(True)
             self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed, izone=3000)
+            #self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed, izone=3000)
             #self.shooter_motor.setPID(0.075, 0.000, 0, 1023.0 / Shooter.max_speed)
             self.initialised = True
 

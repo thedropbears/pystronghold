@@ -9,6 +9,8 @@ import hal
 import logging
 import argparse
 
+from wpilib.interfaces import PIDSource
+
 class Vision:
     video_width = 320
     video_height = 240
@@ -37,10 +39,11 @@ class Vision:
         else:
             return None
 
+    def getPIDSourceType(self):
+        return PIDSource.PIDSoureType.kDisplacement
+
     def pidGet(self):
-        if self._data_array[2] > 0.0:
-            return self._data_array[0]
-        #TODO: what if no value?
+        return self._data_array[0]
 
     def execute(self):
         pass
