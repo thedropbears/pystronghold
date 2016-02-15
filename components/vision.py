@@ -68,18 +68,10 @@ class VisionProcess(multiprocessing.Process):
         Resource._add_global_resource(self)
 
     def run(self):
-        # counter = 0 # FPS counter
-        # tm = time.time()
         self.logger.info("Process started")
         with suppress_stdout_stderr():
             while self._run_event.is_set():
-                """ uncomment this and the counter above to get the fps
-                counter += 1
-                if counter >= 10:
-                    since = time.time()-tm
-                    self.logger.info("FPS: "+str(10.0/since))
-                    tm = time.time()
-                    counter = 0"""
+                tm = time.time()
                 success, image = self.cap.read()
                 if success:
                     x, y, w, h, image = self.findTarget(image)

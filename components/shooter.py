@@ -57,14 +57,11 @@ class Shooter:
             self.shooter_motor.changeControlMode(CANTalon.ControlMode.Speed)
             self.shooter_motor.reverseSensor(True)
             self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed, izone=3000)
-            #self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed, izone=3000)
-            #self.shooter_motor.setPID(0.075, 0.000, 0, 1023.0 / Shooter.max_speed)
             self.initialised = True
 
         if self._changed_state:
             if self.state == States.shooting:
                 self._speed = -self.shoot_percentage*Shooter.max_speed
-                logging.getLogger("shooter").info("fire away")
             elif self.state == States.off:
                 self._speed = 0.0
             elif self.state == States.backdriving:

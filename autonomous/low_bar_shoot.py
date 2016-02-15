@@ -37,18 +37,6 @@ class LowBarTower:
         self.intake.state = intake.States.no_ball
 
     def on_iteration(self, tm):
-        """Run the autonomous routine, based on a state machine"""
-        """if self.state == States.initialisation:
-            self.chassis.start_odometry(5, 0.0)
-            self.state = States.through_low_bar
-        if self.state == States.through_low_bar:
-            if self.chassis.odometry_on_target():
-                self.state = states.strafing
-                self.chassis.start_odometry(3, 45.0) # set the odometry to go to near the batter
-        if self.state == States.strafing:
-            if self.chassis.odometry_on_target():
-                self.state = states.goal_tracking"""
-        logging.getLogger('auto').info(self.state)
         if self.state == States.goal_tracking:
             # TODO - the trig to track the middle of the goal
             self.chassis.range_setpoint = 2.45 #m
