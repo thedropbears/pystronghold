@@ -115,8 +115,8 @@ class VisionProcess(multiprocessing.Process):
         box = cv2.boxPoints(rect)
         box = np.int0(box)
         xy, wh, rotation_angle = cv2.minAreaRect(cnt)
-        # box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
-        cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
+        #box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
+        #cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
         (xy, wh, rotation_angle) = (rect[0], rect[1], rect[2])
         result_image = image
         # Converting the width and height variables to inbetween -1 and 1
