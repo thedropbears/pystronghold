@@ -81,7 +81,7 @@ class VisionProcess(multiprocessing.Process):
                 else:
                     self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, tm]
 
-    def findTarget(self, image):
+    def findTarget(self, image, drawbox=False):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # #Define the colours to look for (in HSV)
@@ -112,11 +112,13 @@ class VisionProcess(multiprocessing.Process):
         perimeter = cv2.arcLength(cnt, True)
         # get a rectangle and then a box around the largest countour
         rect = cv2.minAreaRect(cnt)
-        box = cv2.boxPoints(rect)
-        box = np.int0(box)
-        xy, wh, rotation_angle = cv2.minAreaRect(cnt)
-        #box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
-        #cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
+        if drawbox:
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            xy, wh, rotation_angle = cv2.minAreaRect(cnt)
+            #uncomment this line and remove brackets around box to draw all contours
+            #box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
+            cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
         (xy, wh, rotation_angle) = (rect[0], rect[1], rect[2])
         result_image = image
         # Converting the width and height variables to inbetween -1 and 1
@@ -127,6 +129,8 @@ class VisionProcess(multiprocessing.Process):
             return 0.0, 0.0, 0.0, 0.0, result_image
         x = ((2 * x) / Vision.video_width) - 1
         y = ((2 * y) / Vision.video_height) - 1
+        w = w / Vision.video_width
+        h = h / Vision.video_height
         return x, y, w, h, result_image
 
 def setup_capture(device_idx=-1):
@@ -158,10 +162,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Capture sample image.')
     parser.add_argument('--device', help='capture device id', default=-1, type=int)
     parser.add_argument('--video', help='display a live video feed of the capture', action='store_true')
-    parser.add_argument('--file', help="capture image to a file", type=str, default=None)
+    parser.add_argument('--file', help='capture image to a file', type=str, default=None)
     parser.add_argument('--verbose',
             help='print the values coming back from the findTarget function for a specific file', type=str,
-            default = None)
+            default=None)
+    parser.add_argument('--showfile', help='display a specific file with a bounding box drawn around it',
+            type=str, default=None)
     args = parser.parse_args()
     cap = setup_capture(args.device)
     print("Brightness: %f" % cap.get(cv2.CAP_PROP_BRIGHTNESS))
@@ -176,6 +182,12 @@ if __name__ == "__main__":
         image = cv2.imread(args.verbose, cv2.IMREAD_COLOR)
         x, y, w, h, image = VisionProcess.findTarget(None, image)
         print("x: %f\ny: %f\nwidth: %f\nheight: %f\n" % (x, y, w, h))
+    if args.showfile:
+        image = cv2.imread(args.showfile, cv2.IMREAD_COLOR)
+        x, y, w, h, image = VisionProcess.findTarget(None, image, drawbox=True)
+        cv2.imshow('image',image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
     if args.video:
         window = cv2.namedWindow("preview")
         while True:
