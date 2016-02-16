@@ -1,4 +1,5 @@
 import multiprocessing
+import multiprocessing.sharedctypes
 import os
 import time
 import cv2
@@ -21,20 +22,21 @@ class Vision:
     video_white_balance = 4000  # min 2000 max 6500
     video_gain = 0.0
     def __init__(self):
-        self._data_array = multiprocessing.Array("d", [0.0, 0.0, 0.0, 0.0, 0.0])
+        self._data_array = multiprocessing.sharedctypes.RawArray("d", [0.0, 0.0, 0.0, 0.0, 0.0])
         self._process_run_event = multiprocessing.Event()
         self.logger = logging.getLogger("vision")
         self._vision_process = VisionProcess(self._data_array, self._process_run_event)
-        # self._vision_process.daemon = True
         self._process_run_event.set()
+        self._vision_process.daemon = True
         self._vision_process.start()
-        self.logger.info("Vision process started")
+        self.logger.info("Vision process started: ")
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
 
     def free(self):
         self._process_run_event.clear()
-        self._vision_process.join()
+        self._vision_process.join(0.1)
+        self._vision_process.terminate()
 
     def get(self):
         if self._data_array[2] > 0.0:
@@ -55,7 +57,7 @@ class Vision:
 
 class VisionProcess(multiprocessing.Process):
     def __init__(self, data_array, run_event):
-        super().__init__(args=(data_array,))
+        super().__init__(args=(data_array, run_event))
         self.vision_data_array = data_array
         self._run_event = run_event
         self.logger = logging.getLogger("vision-process")
