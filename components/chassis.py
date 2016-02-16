@@ -240,6 +240,9 @@ class Chassis:
     def toggle_heading_hold(self):
         self.heading_hold = not self.heading_hold
 
+    def set_heading_setpoint(self, setpoint):
+        self.heading_hold_pid.setSetpoint(constrain_angle(setpoint))
+
 class SwerveModule():
     def __init__(self, drive, steer,
                  absolute=True, reverse_drive=False,

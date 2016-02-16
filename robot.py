@@ -121,20 +121,25 @@ class StrongholdRobot(magicbot.MagicRobot):
             self.onException()
 
         try:
-            if self.joystick.getPOV() == -1:
-                self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05),
-                                    - rescale_js(self.joystick.getX(), deadzone=0.05),
-                                    - rescale_js(self.joystick.getZ(), deadzone=0.4, exponential=0.3),
-                                    (self.joystick.getThrottle() - 1.0) / -2.0
-                                    ]
-            else:
-                self.chassis.inputs = [math.cos(self.joystick.getPOV() * math.pi / 180.0),
-                                    - math.sin(self.joystick.getPOV() * math.pi / 180.0),
-                                    0.0,
-                                    None
-                                    ]
+            if self.joystick.getPOV() != -1:
+                self.chassis.heading_hold = True
+                direction = 0.0
+                if self.joystick.getPOV() == 180:
+                    direction = math.pi # face to shoot to middle goal
+                elif self.joystick.getPOV() == 225:
+                    direction = math.pi - math.pi/3.0
+                elif self.joystick.getPOV() == 135:
+                    direction = math.pi + math.pi/3.0
+                else:
+                    direction = -self.joystick.getPOV()
+                self.chassis.heading_hold_pid.set_heading_setpoint(direction)
         except:
             self.onException()
+        self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05),
+                            - rescale_js(self.joystick.getX(), deadzone=0.05),
+                            - rescale_js(self.joystick.getZ(), deadzone=0.4, exponential=0.3),
+                            (self.joystick.getThrottle() - 1.0) / -2.0
+                            ]
         self.putData()
 
 
