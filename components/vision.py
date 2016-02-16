@@ -115,7 +115,6 @@ class VisionProcess(multiprocessing.Process):
         if drawbox:
             box = cv2.boxPoints(rect)
             box = np.int0(box)
-            xy, wh, rotation_angle = cv2.minAreaRect(cnt)
             #uncomment this line and remove brackets around box to draw all contours
             #box = [np.int0(cv2.boxPoints(cv2.minAreaRect(contour))) for contour in contours]
             cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
@@ -127,6 +126,8 @@ class VisionProcess(multiprocessing.Process):
             (w, h) = wh
         except ValueError:
             return 0.0, 0.0, 0.0, 0.0, result_image
+        if rotation_angle < -45.0 or rotation_angle > 45.0:
+            w, h = h, w
         x = ((2 * x) / Vision.video_width) - 1
         y = ((2 * y) / Vision.video_height) - 1
         w = w / Vision.video_width
@@ -169,19 +170,22 @@ if __name__ == "__main__":
     parser.add_argument('--showfile', help='display a specific file with a bounding box drawn around it',
             type=str, default=None)
     args = parser.parse_args()
-    cap = setup_capture(args.device)
-    print("Brightness: %f" % cap.get(cv2.CAP_PROP_BRIGHTNESS))
-    print("Contrast: %f" % cap.get(cv2.CAP_PROP_CONTRAST))
-    print("Saturation: %f" % cap.get(cv2.CAP_PROP_SATURATION))
-    print("Gain: %f" % cap.get(cv2.CAP_PROP_GAIN))
-    retval, image = cap.read()
-    if retval and args.file:
-        x, y, w, h, image = VisionProcess.findTarget(None, image)
-        cv2.imwrite(args.file, image)
+    cap = None
+    if args.file or args.video:
+        cap = setup_capture(args.device)
+        print("Brightness: %f" % cap.get(cv2.CAP_PROP_BRIGHTNESS))
+        print("Contrast: %f" % cap.get(cv2.CAP_PROP_CONTRAST))
+        print("Saturation: %f" % cap.get(cv2.CAP_PROP_SATURATION))
+        print("Gain: %f" % cap.get(cv2.CAP_PROP_GAIN))
+    if args.file:
+        retval, image = cap.read()
+        if retval:
+            x, y, w, h, image = VisionProcess.findTarget(None, image)
+            cv2.imwrite(args.file, image)
     if args.verbose:
         image = cv2.imread(args.verbose, cv2.IMREAD_COLOR)
         x, y, w, h, image = VisionProcess.findTarget(None, image)
-        print("x: %f\ny: %f\nwidth: %f\nheight: %f\n" % (x, y, w, h))
+        print("x: %f\ny: %f\nwidth: %f\nheight: %f" % (x, y, w, h))
     if args.showfile:
         image = cv2.imread(args.showfile, cv2.IMREAD_COLOR)
         x, y, w, h, image = VisionProcess.findTarget(None, image, drawbox=True)
