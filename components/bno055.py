@@ -88,9 +88,8 @@ class BNO055(GyroBase):
         euler_signed = float(euler_unsigned) / 900.0
         return euler_signed
 
-    def getRates(self):
-        """ Return the angular rates of the gyroscope as [heading, pitch, roll] """
-        pass
+    def getHeadingRate(self):
+        return -self.getEuler(BNO055.BNO055_GYRO_DATA_Z_LSB_ADDR)
 
     def resetHeading(self):
         self.offset = self.getRawHeading()

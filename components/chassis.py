@@ -74,6 +74,7 @@ class Chassis:
         self.vision_pid.setContinuous(False)
         self.vision_pid.setInputRange(-1.0, 1.0)
         self.vision_pid.setOutputRange(-0.3, 0.3)
+        self.momentum = False
         import robot
         self.rescale_js = robot.rescale_js
 
@@ -147,14 +148,19 @@ class Chassis:
             self.vy = self.inputs[1]
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
-        if self.heading_hold and self.inputs[2] == 0.0:
-            # we are not getting a twist input, so do heading hold
-            self.heading_hold_pid.enable()
-            self.vz = self.heading_hold_pid_output.output
-        else:
-            self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
-            self.vz = self.inputs[2]
+        if self.heading_hold:
+            if self.momentum and self.bno055.getHeadingRate() < 0.02:
+                self.momentum = False
 
+            if self.inputs[2] != 0.0:
+                self.momentum = True
+
+            if not self.momentum:
+                self.heading_hold_pid.enable()
+                self.vz = self.heading_hold_pid_output.output
+            else:
+                self.heading_hold_pid.setSetpoint(constrain_angle(self.bno055.getAngle()))
+                self.vz = self.inputs[2]
         if self.lock_wheels:
             for name, params, module in zip(Chassis.module_params.items(), self._modules):
                 direction = constrain_angle(math.atan2(params['vz']['y'], params['vz']['x']) + math.pi/2.0)

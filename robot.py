@@ -3,12 +3,13 @@
 import wpilib
 import magicbot
 
-from components.chassis import Chassis, BlankPIDOutput
+from components.chassis import Chassis, BlankPIDOutput, constrain_angle
 from components.vision import Vision
 from components.bno055 import BNO055
 from components.range_finder import RangeFinder
 from components.shooter import Shooter
 from components.intake import Intake
+from components.defeater import Defeater
 
 from networktables import NetworkTable
 
@@ -21,12 +22,14 @@ class StrongholdRobot(magicbot.MagicRobot):
     shooter = Shooter
     range_finder = RangeFinder
     vision = Vision
+    defeater = Defeater
 
     def createObjects(self):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
         self.intake_motor = wpilib.CANTalon(7)
         self.shooter_motor = wpilib.CANTalon(12)
+        self.defeater_motor = wpilib.CANTalon(5)
         self.range_finder_counter = wpilib.Counter(0)
         self.range_finder_counter.setSemiPeriodMode(highSemiPeriod=True)
         self.joystick = wpilib.Joystick(0)
@@ -53,6 +56,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("vx", self.chassis.vx)
         self.sd.putDouble("vy", self.chassis.vy)
         self.sd.putDouble("vz", self.chassis.vz)
+        self.sd.putDouble("input_twist", self.chassis.inputs[2])
         self.sd.putDouble("field_oriented", self.chassis.field_oriented)
         self.sd.putDouble("raw_yaw", self.bno055.getRawHeading())
         self.sd.putDouble("raw_pitch", self.bno055.getPitch())
@@ -63,6 +67,10 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("intake_state", self.intake.state)
         self.sd.putDouble("vision_pid_output", self.chassis.vision_pid_output.output)
         self.sd.putBoolean("track_vision", self.chassis.track_vision)
+        self.sd.putDouble("pov", self.joystick.getPOV())
+        self.sd.putDouble("gyro_z_rate", self.bno055.getHeadingRate())
+        self.sd.putDouble("heading_hold_error", self.heading_hold_pid.getSetpoint()-self.bno055.getAngle())
+        self.sd.putDouble("defeater_current", self.defeater_motor.getOutputCurrent())
 
 
     def disabledInit(self):
@@ -91,7 +99,12 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(8):
+                enabled = self.heading_hold_pid.isEnable()
+                self.heading_hold_pid.disable()
                 self.bno055.resetHeading()
+                self.heading_hold_pid.setSetpoint(constrain_angle(self.bno055.getAngle()))
+                if enabled:
+                    self.heading_hold_pid.enable()
         except:
             self.onException()
 
@@ -121,23 +134,39 @@ class StrongholdRobot(magicbot.MagicRobot):
             self.onException()
 
         try:
+            if self.debounce(4):
+                self.defeater.up()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(6):
+                self.defeater.down()
+        except:
+            self.onException()
+
+
+        try:
             if self.joystick.getPOV() != -1:
                 self.chassis.heading_hold = True
                 direction = 0.0
-                if self.joystick.getPOV() == 180:
-                    direction = math.pi # face to shoot to middle goal
-                elif self.joystick.getPOV() == 225:
-                    direction = math.pi - math.pi/3.0
-                elif self.joystick.getPOV() == 135:
-                    direction = math.pi + math.pi/3.0
-                else:
-                    direction = -self.joystick.getPOV()
-                self.chassis.heading_hold_pid.set_heading_setpoint(direction)
+                if self.joystick.getPOV() == 0:
+                    # shooter centre goal
+                    direction = 0.0
+                elif self.joystick.getPOV() == 90:
+                    # shooter right goal
+                    direction = math.pi/6.0
+                elif self.joystick.getPOV() == 270:
+                    # shooter left goal
+                    direction = -math.pi/6.0
+                elif self.joystick.getPOV() == 180:
+                    direction = math.pi
+                self.chassis.set_heading_setpoint(direction)
         except:
             self.onException()
         self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05),
                             - rescale_js(self.joystick.getX(), deadzone=0.05),
-                            - rescale_js(self.joystick.getZ(), deadzone=0.4, exponential=0.3),
+                            - rescale_js(self.joystick.getZ(), deadzone=0.3, exponential=1.2),
                             (self.joystick.getThrottle() - 1.0) / -2.0
                             ]
         self.putData()
