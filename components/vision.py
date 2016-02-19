@@ -46,10 +46,10 @@ class Vision:
             return None
 
     def getPIDSourceType(self):
-        return PIDSource.PIDSoureType.kDisplacement
+        return PIDSource.PIDSourceType.kDisplacement
 
     def pidGet(self):
-        return self._data_array[0]
+        return -self._data_array[0]
 
     def execute(self):
         pass

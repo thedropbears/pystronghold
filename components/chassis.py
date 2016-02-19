@@ -50,6 +50,8 @@ class Chassis:
     range_finder = RangeFinder
     heading_hold_pid_output = BlankPIDOutput
     heading_hold_pid = PIDController
+    vision_pid_output = BlankPIDOutput
+    vision_pid = PIDController
 
     def __init__(self):
         super().__init__()
@@ -68,12 +70,6 @@ class Chassis:
         self.range_setpoint = None
         self.heading_hold = True
         self.lock_wheels = False
-        self.vision_pid_output = BlankPIDOutput()
-        self.vision_pid = PIDController(1.0, 0.0, 0.0, self.vision, self.vision_pid_output)
-        self.vision_pid.PercentageTolerance_onTarget = 5.0
-        self.vision_pid.setContinuous(False)
-        self.vision_pid.setInputRange(-1.0, 1.0)
-        self.vision_pid.setOutputRange(-0.3, 0.3)
         self.momentum = False
         import robot
         self.rescale_js = robot.rescale_js
@@ -83,6 +79,7 @@ class Chassis:
         self.heading_hold = True
         self.field_oriented = True
         self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
+        self.heading_hold_pid.reset()
         # Update the current module steer setpoint to be the current position
         # Stops the unwind problem
         for module in self._modules.values():
@@ -144,8 +141,10 @@ class Chassis:
             self.throttle = self.inputs[3]
         # Are we strafing to get the vision target in the centre
         if self.track_vision:
+            self.vision_pid.enable()
             self.field_oriented = False
             self.vy = self.vision_pid_output.output
+            self.throttle = 1.0
         else:
             self.vy = self.inputs[1]
             self.throttle = self.inputs[3]
