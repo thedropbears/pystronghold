@@ -82,6 +82,10 @@ class Chassis:
         self.heading_hold = True
         self.field_oriented = True
         self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
+        # Update the current module steer setpoint to be the current position
+        # Stops the unwind problem
+        for module in self._modules.values():
+            module._steer.set(module._steer.getPosition())
 
     def toggle_field_oriented(self):
         self.field_oriented = not self.field_oriented
@@ -188,9 +192,6 @@ class SwerveModule():
             self._offset = zero_reading - 256.0
             if reverse_steer:
                 self._offset = -self._offset
-            # Update the current setpoint to be the current position
-            # Stops the unwind problem
-            self._steer.set(self._steer.getSetpoint())
         else:
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
