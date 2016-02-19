@@ -31,7 +31,7 @@ class Chassis:
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
                      'b': {'args': {'drive':8, 'steer':9, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':177,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':230,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
                      'c': {'args': {'drive':2, 'steer':4, 'absolute':True,
