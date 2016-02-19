@@ -26,40 +26,6 @@ class Chassis:
 
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
-    """module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':332,
-                                    'drive_encoder':True, 'reverse_drive_encoder':True},
-                           'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
-                     'b': {'args': {'drive':8, 'steer':9, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':162,
-                                    'drive_encoder':True, 'reverse_drive_encoder':True},
-                           'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
-                     'c': {'args': {'drive':2, 'steer':4, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':320,
-                                    'drive_encoder':True, 'reverse_drive_encoder':True},
-                           'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
-                     'd': {'args': {'drive':3, 'steer':6, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':606,
-                                    'drive_encoder':True, 'reverse_drive_encoder':False},
-                           'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
-                     }"""
-    """module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':979,
-                                    'drive_encoder':True, 'reverse_drive_encoder':True},
-                           'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
-                     'b': {'args': {'drive':8, 'steer':9, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':177,
-                                    'drive_encoder':True, 'reverse_drive_encoder':True},
-                           'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
-                     'c': {'args': {'drive':2, 'steer':4, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':276,
-                                    'drive_encoder':True, 'reverse_drive_encoder':True},
-                           'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
-                     'd': {'args': {'drive':3, 'steer':6, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':False, 'zero_reading':605,
-                                    'drive_encoder':False, 'reverse_drive_encoder':False},
-                           'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
-                     }"""
     module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
                                     'reverse_drive':True, 'reverse_steer':True, 'zero_reading':979,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
@@ -101,9 +67,6 @@ class Chassis:
         self.track_vision = False
         self.range_setpoint = None
         self.heading_hold = True
-        self.odometry = False
-        self.odometry_setpoint = 0.0 #metres
-        self.odometry_direction = 0.0 #radians
         self.lock_wheels = False
         self.vision_pid_output = BlankPIDOutput()
         self.vision_pid = PIDController(1.0, 0.0, 0.0, self.vision, self.vision_pid_output)
@@ -162,40 +125,6 @@ class Chassis:
         for name, polar_vector in polar_vectors.items():
             self._modules[name].steer(polar_vector['dir'], polar_vector['mag'])
 
-    #@property
-    #def module_positions(self):
-     #   """Return the positions of the modules in metres"""
-      #  positions = []
-       # for module in self._modules:
-        #    position = module._drive.getPosition()
-         #   # TODO - possibly reverse position based on encoder settings
-          #  position /= module.counts_per_metre
-           # positions.append(position)
-        #return positions
-
-
-    def start_odometry(self, setpoint, direction):
-        """ Start the odometry by setting the flag and setpoints"""
-        self.odometry = True
-        self.odometry_setpoint = setpoint
-        self.odometry_direction = direction
-        self.heading_hold = True
-        self.heading_hold_pid.setSetpoint(0.0)
-        for module in self._modules:
-            module.setPosition(0.0)
-
-    def stop_odometry(self):
-        """Called when the odometry is finished"""
-        self.odometry = False
-        self.odometry_setpoint = 0.0
-        self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
-
-    def odometry_on_target(self, tolerance=0.5):#meters
-        """ Returns true if we are within tolerance meters of the target """
-        if self.odometry and abs(reduce(lambda x, y: x+y, self.module_positions)/len(self.module_positions) - self.odometry_setpoint) < tolerance:
-            return True
-        return False
-
     def execute(self):
         if self.field_oriented and self.inputs[3] is not None:
             self.inputs[0:2] = field_orient(self.inputs[0], self.inputs[1], self.bno055.getHeading())
@@ -205,14 +134,12 @@ class Chassis:
             self.field_oriented = False
             self.throttle = 1.0
             self.vx = self.rescale_js(self.range_finder.getDistance() - self.range_setpoint, rate=0.3)
-        elif not self.odometry:
             self.vx = self.inputs[0]
             self.throttle = self.inputs[3]
         # Are we strafing to get the vision target in the centre
         if self.track_vision:
             self.field_oriented = False
             self.vy = self.vision_pid_output.output
-        elif not self.odometry:
             self.vy = self.inputs[1]
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
@@ -223,18 +150,12 @@ class Chassis:
         else:
             self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
             self.vz = self.inputs[2]
-        if self.odometry:
-            if self.odometry_on_target():
-                self.stop_odometry()
-            else:
-                self.vx = math.cos(self.odometry_direction)
-                self.vy = math.sin(self.odometry_direction)
-        elif self.lock_wheels:
+
+        if self.lock_wheels:
             for name, params, module in zip(Chassis.module_params.items(), self._modules):
-                x = params['vz']['x']
-                y = params['vz']['y']
                 direction = constrain_angle(math.atan2(params['vz']['y'], params['vz']['x']) + math.pi/2.0)
-        if not self.lock_wheels:
+                module.steer(direction, 0.0)
+        else:
             self.drive(self.vx, self.vy, self.vz, self.throttle)
 
     def toggle_heading_hold(self):
