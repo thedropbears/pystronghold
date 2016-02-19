@@ -16,8 +16,8 @@ class Shooter:
     chassis = Chassis
     shoot_encoder_cpr = 4096.0
     max_speed = 36000.0
-    shoot_percentage = 0.99
-    #shoot_percentage = 0.67
+    #shoot_percentage = 0.99
+    shoot_percentage = 0.67
 
     def __init__(self):
         self._changed_state = True
