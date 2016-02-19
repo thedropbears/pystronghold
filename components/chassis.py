@@ -139,12 +139,14 @@ class Chassis:
             self.field_oriented = False
             self.throttle = 1.0
             self.vx = self.rescale_js(self.range_finder.getDistance() - self.range_setpoint, rate=0.3)
+        else:
             self.vx = self.inputs[0]
             self.throttle = self.inputs[3]
         # Are we strafing to get the vision target in the centre
         if self.track_vision:
             self.field_oriented = False
             self.vy = self.vision_pid_output.output
+        else:
             self.vy = self.inputs[1]
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
