@@ -27,19 +27,19 @@ class Chassis:
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
     module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':979,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':1068,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
                      'b': {'args': {'drive':8, 'steer':9, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':230,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':1102,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
                      'c': {'args': {'drive':2, 'steer':4, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':276,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':529,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
                      'd': {'args': {'drive':3, 'steer':6, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':605,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':608,
                                     'drive_encoder':True, 'reverse_drive_encoder':False},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }
