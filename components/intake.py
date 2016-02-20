@@ -90,4 +90,4 @@ class Intake:
             if abs(self.shooter.shooter_motor.getClosedLoopError())<= 0.02*(self.shooter.max_speed) and self.shooter._speed != 0.0:
                 self._speed = 1.0
 
-        self.intake_motor.set(-self._speed)
+        self.intake_motor.set(self._speed)

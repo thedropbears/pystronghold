@@ -27,7 +27,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd = NetworkTable.getTable('SmartDashboard')
         self.intake_motor = wpilib.CANTalon(7)
         self.shooter_motor = wpilib.CANTalon(12)
-        self.defeater_motor = wpilib.CANTalon(5)
+        self.defeater_motor = wpilib.CANTalon(11)
         self.range_finder_counter = wpilib.Counter(0)
         self.range_finder_counter.setSemiPeriodMode(highSemiPeriod=True)
         self.joystick = wpilib.Joystick(0)
