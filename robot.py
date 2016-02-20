@@ -25,20 +25,21 @@ class StrongholdRobot(magicbot.MagicRobot):
     def createObjects(self):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
-        self.intake_motor = wpilib.CANTalon(7)
+        self.intake_motor = wpilib.CANTalon(11)
         self.shooter_motor = wpilib.CANTalon(12)
-        self.defeater_motor = wpilib.CANTalon(11)
-        self.range_finder_counter = wpilib.Counter(0)
-        self.range_finder_counter.setSemiPeriodMode(highSemiPeriod=True)
+        self.defeater_motor = wpilib.CANTalon(5)
         self.joystick = wpilib.Joystick(0)
         self.gamepad = wpilib.Joystick(1)
         self.pressed_buttons = set()
         # needs to be created here so we can pass it in to the PIDController
         self.bno055 = BNO055()
         self.vision = Vision()
-        self.range_finder = RangeFinder()
+        self.range_finder = RangeFinder(0)
         self.heading_hold_pid_output = BlankPIDOutput()
-        self.heading_hold_pid = wpilib.PIDController(0.5, 0.01, 0.0, self.bno055, self.heading_hold_pid_output)
+        Tu = 1.2
+        Ku = 1.0
+        Kp = Ku*0.8
+        self.heading_hold_pid = wpilib.PIDController(Kp, 0.0, 0.0*Kp*Tu/20.0, self.bno055, self.heading_hold_pid_output)
         self.heading_hold_pid.PercentageTolerance_onTarget(3.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
@@ -49,45 +50,47 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.vision_pid.setInputRange(-1.0, 1.0)
         self.vision_pid.setOutputRange(-0.3, 0.3)
         self.vision_pid.setSetpoint(0.0)
-        self.range_finder_output = BlankPIDOutput()
-        self.range_pid = wpilib.PIDController(0.1, 0.0, 0.0, self.range_finder, self.range_finder_output)
+        self.range_pid_output = BlankPIDOutput()
+        self.range_pid = wpilib.PIDController(0.3, 0.0, 0.0, self.range_finder, self.range_pid_output)
         self.range_pid.PercentageTolerance_onTarget = 3.0
         self.range_pid.setContinuous(False)
         self.range_pid.setInputRange(0, 10)
         self.range_pid.setOutputRange(-0.3, 0.3)
         self.range_pid.setSetpoint(2.0)
+        self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
+        self.intake_motor.reverseSensor(True)
 
     def putData(self):
-        try:
-            self.sd.putDouble("range_finder", self.range_finder.getDistance())
-            self.sd.putDouble("gyro", self.bno055.getHeading())
-            vision_array = self.vision.get()
-            vision_x = None
-            if not vision_array:
-                vision_x = -2
-            else:
-                vision_x = vision_array[0]
-            self.sd.putDouble("vision_x", vision_x)
-            self.sd.putDouble("vx", self.chassis.vx)
-            self.sd.putDouble("vy", self.chassis.vy)
-            self.sd.putDouble("vz", self.chassis.vz)
-            self.sd.putDouble("input_twist", self.chassis.inputs[2])
-            self.sd.putDouble("field_oriented", self.chassis.field_oriented)
-            self.sd.putDouble("raw_yaw", self.bno055.getRawHeading())
-            self.sd.putDouble("raw_pitch", self.bno055.getPitch())
-            self.sd.putDouble("raw_roll", self.bno055.getRoll())
-            self.sd.putDouble("shooter_speed", self.shooter._speed)
-            self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
-            self.sd.putDouble("heading_hold_pid_setpoint", self.heading_hold_pid.getSetpoint())
-            self.sd.putDouble("intake_state", self.intake.state)
-            self.sd.putDouble("vision_pid_output", self.chassis.vision_pid_output.output)
-            self.sd.putBoolean("track_vision", self.chassis.track_vision)
-            self.sd.putDouble("pov", self.joystick.getPOV())
-            self.sd.putDouble("gyro_z_rate", self.bno055.getHeadingRate())
-            self.sd.putDouble("heading_hold_error", self.heading_hold_pid.getSetpoint()-self.bno055.getAngle())
-            self.sd.putDouble("defeater_current", self.defeater_motor.getOutputCurrent())
-        except:
-            pass
+        self.sd.putDouble("range_finder", self.range_finder.getDistance())
+        self.sd.putDouble("gyro", self.bno055.getHeading())
+        vision_array = self.vision.get()
+        vision_x = None
+        if not vision_array:
+            vision_x = -2
+        else:
+            vision_x = vision_array[0]
+        self.sd.putDouble("vision_x", vision_x)
+        self.sd.putDouble("vx", self.chassis.vx)
+        self.sd.putDouble("vy", self.chassis.vy)
+        self.sd.putDouble("vz", self.chassis.vz)
+        self.sd.putDouble("input_twist", self.chassis.inputs[2])
+        self.sd.putDouble("field_oriented", self.chassis.field_oriented)
+        self.sd.putDouble("raw_yaw", self.bno055.getRawHeading())
+        self.sd.putDouble("raw_pitch", self.bno055.getPitch())
+        self.sd.putDouble("raw_roll", self.bno055.getRoll())
+        self.sd.putDouble("shooter_speed", self.shooter._speed)
+        self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
+        self.sd.putDouble("heading_hold_pid_setpoint", self.heading_hold_pid.getSetpoint())
+        self.sd.putDouble("intake_state", self.intake.state)
+        self.sd.putDouble("vision_pid_output", self.chassis.vision_pid_output.output)
+        self.sd.putBoolean("track_vision", self.chassis.track_vision)
+        self.sd.putDouble("pov", self.joystick.getPOV())
+        self.sd.putDouble("gyro_z_rate", self.bno055.getHeadingRate())
+        self.sd.putDouble("heading_hold_error", self.heading_hold_pid.getSetpoint()-self.bno055.getAngle())
+        self.sd.putDouble("range_error", self.range_pid.getSetpoint()-self.range_finder.pidGet())
+        self.sd.putDouble("defeater_current", self.defeater_motor.getOutputCurrent())
+        self.sd.putDouble("defeater_speed", self.defeater_motor.get())
+        self.sd.putDouble("joystick_throttle", self.joystick.getThrottle())
 
 
     def disabledInit(self):

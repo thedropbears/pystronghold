@@ -6,7 +6,9 @@ from wpilib.interfaces import PIDSource
 
 class RangeFinder(PIDSource):
 
-    range_finder_counter = wpilib.Counter
+    def __init__(self, dio_number):
+        self.range_finder_counter = wpilib.Counter(dio_number)
+        self.range_finder_counter.setSemiPeriodMode(highSemiPeriod=True)
 
     def getDistance(self):
         return self.range_finder_counter.getPeriod() * 1000000 / 1000 # 10 usec is 1cm, return as metres

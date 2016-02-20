@@ -2,6 +2,7 @@ from wpilib import I2C
 from wpilib.interfaces import PIDSource
 from wpilib import GyroBase
 import hal
+import math
 
 import logging
 
@@ -69,7 +70,8 @@ class BNO055(GyroBase):
         return [self.getHeading(), self.getPitch(), self.getRoll()]
 
     def getHeading(self):
-        return self.getRawHeading() - self.offset
+        angle = (self.getRawHeading() - self.offset)
+        return math.atan2(math.sin(angle), math.cos(angle))
 
     def getRawHeading(self):
         return -self.getEuler(self.BNO055_EULER_H_LSB_ADDR)

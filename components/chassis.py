@@ -27,7 +27,7 @@ class Chassis:
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
     module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':1068,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':45,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
                      'b': {'args': {'drive':8, 'steer':9, 'absolute':True,
@@ -39,8 +39,8 @@ class Chassis:
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
                      'd': {'args': {'drive':3, 'steer':6, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':608,
-                                    'drive_encoder':True, 'reverse_drive_encoder':False},
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':600,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }
 
@@ -52,6 +52,8 @@ class Chassis:
     heading_hold_pid = PIDController
     vision_pid_output = BlankPIDOutput
     vision_pid = PIDController
+    range_pid_output = BlankPIDOutput
+    range_pid = PIDController
 
     def __init__(self):
         super().__init__()
@@ -135,10 +137,10 @@ class Chassis:
         if self.range_setpoint:
             self.field_oriented = False
             self.throttle = 1.0
-            self.vx = self.rescale_js(self.range_finder.getDistance() - self.range_setpoint, rate=0.3)
+            self.range_pid.enable()
+            self.vx = self.range_pid_output.output
         else:
             self.vx = self.inputs[0]
-            self.throttle = self.inputs[3]
         # Are we strafing to get the vision target in the centre
         if self.track_vision:
             self.vision_pid.enable()
@@ -147,10 +149,11 @@ class Chassis:
             self.throttle = 1.0
         else:
             self.vy = self.inputs[1]
+        if not (self.track_vision and self.range_setpoint):
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
         if self.heading_hold:
-            if self.momentum and self.bno055.getHeadingRate() < 0.02:
+            if self.momentum and self.bno055.getHeadingRate() < 0.01:
                 self.momentum = False
 
             if self.inputs[2] != 0.0:
@@ -160,7 +163,7 @@ class Chassis:
                 self.heading_hold_pid.enable()
                 self.vz = self.heading_hold_pid_output.output
             else:
-                self.heading_hold_pid.setSetpoint(constrain_angle(self.bno055.getAngle()))
+                self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
                 self.vz = self.inputs[2]
         if self.lock_wheels:
             for name, params, module in zip(Chassis.module_params.items(), self._modules):
@@ -210,7 +213,7 @@ class SwerveModule():
         if self.drive_encoder:
             self.drive_counts_per_rev = 80*6.67
             self.drive_counts_per_metre = self.drive_counts_per_rev*(math.pi*0.1016)
-            self.drive_max_speed = 639
+            self.drive_max_speed = 570
             self._drive.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self.changeDriveControlMode(CANTalon.ControlMode.Speed)
             self._drive.reverseSensor(reverse_drive_encoder)
