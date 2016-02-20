@@ -4,7 +4,7 @@ import math
 
 from wpilib.interfaces import PIDSource
 
-class RangeFinder:
+class RangeFinder(PIDSource):
 
     range_finder_counter = wpilib.Counter
 
