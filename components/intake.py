@@ -32,6 +32,9 @@ class Intake:
         self.intake_time = 0.0
         self.previous_velocity = 0.0
 
+    def stop(self):
+        self.state = States.no_ball
+
     def toggle(self):
         if self.state != States.no_ball:
             self.state = States.no_ball
@@ -51,6 +54,9 @@ class Intake:
         csv_file.close()
         self.log_queue = []
         self.velocity_queue = []
+
+    def on_enable(self):
+        self.stop()
 
     def execute(self):
         # add next reading on right, will automatically pop on left
@@ -83,6 +89,7 @@ class Intake:
                 self.state = States.intaking_contact
 
         if self.state == States.intaking_contact:
+            self.shooter.change_state(shooter.States.backdriving)
             if self.intake_motor.getClosedLoopError() < Intake.max_speed*0.1:
                 self.state = States.pinning
 

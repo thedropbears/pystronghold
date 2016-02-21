@@ -153,7 +153,7 @@ class Chassis:
             self.throttle = self.inputs[3]
         # TODO - use the gyro to hold heading here
         if self.heading_hold:
-            if self.momentum and self.bno055.getHeadingRate() < 0.01:
+            if self.momentum and abs(self.bno055.getHeadingRate()) < 0.005:
                 self.momentum = False
 
             if self.inputs[2] != 0.0:

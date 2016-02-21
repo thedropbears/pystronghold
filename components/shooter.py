@@ -45,8 +45,8 @@ class Shooter:
             self._changed_state = True
 
     def on_enabled(self):
-        self.state = States.off
-        self._changed_state = True
+        self.stop()
+        self._speed = 0.0
 
     def on_disabled(self):
         self.state = States.off
@@ -66,6 +66,6 @@ class Shooter:
             elif self.state == States.off:
                 self._speed = 0.0
             elif self.state == States.backdriving:
-                self._speed = 0.01*Shooter.max_speed
+                self._speed = 0.05*Shooter.max_speed
             self._changed_state = False
-            self.shooter_motor.set(self._speed)
+        self.shooter_motor.set(self._speed)

@@ -56,7 +56,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.range_pid.setContinuous(False)
         self.range_pid.setInputRange(0, 10)
         self.range_pid.setOutputRange(-0.3, 0.3)
-        self.range_pid.setSetpoint(2.0)
+        self.range_pid.setSetpoint(1.4)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
         self.intake_motor.reverseSensor(True)
 
@@ -160,6 +160,13 @@ class StrongholdRobot(magicbot.MagicRobot):
             self.onException()
 
         try:
+            if self.debounce(3):
+                self.shooter.stop()
+                self.intake.stop()
+        except:
+            self.onException()
+
+        try:
             if self.debounce(6):
                 self.defeater.down()
         except:
@@ -175,10 +182,10 @@ class StrongholdRobot(magicbot.MagicRobot):
                     direction = 0.0
                 elif self.joystick.getPOV() == 90:
                     # shooter right goal
-                    direction = math.pi/6.0
+                    direction = math.pi/6.0+math.pi
                 elif self.joystick.getPOV() == 270:
                     # shooter left goal
-                    direction = -math.pi/6.0
+                    direction = -math.pi/6.0+math.pi
                 elif self.joystick.getPOV() == 180:
                     direction = math.pi
                 self.chassis.set_heading_setpoint(direction)
