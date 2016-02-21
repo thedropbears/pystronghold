@@ -27,7 +27,7 @@ class LowBarTower:
     #strafe_vx = 2.4
     #strafe_vy = 3.8
     strafe_vx = 1.2
-    strafe_vy = 1.2
+    strafe_vy = 1.0
     strafe_distance = math.sqrt(strafe_vx**2 + strafe_vy**2)
 
     @property
@@ -64,17 +64,19 @@ class LowBarTower:
     def on_iteration(self, tm):
         self.sd.putDouble('auto_state', self.state)
         if self.state == States.through_low_bar:
-            self.chassis.inputs[:] = (1.0, 0.0, 0.0, 0.7)
+            self.chassis.inputs[:] = (1.0, 0.0, 0.0, 0.5)
             if self.distance > 3.4:
                 self.zero_encoders()
                 self.state = States.strafing
         if self.state == States.strafing:
-            self.chassis.inputs[:] = (self.strafe_vx, -self.strafe_vy, 0.0, 0.7)
+            self.chassis.inputs[:] = (self.strafe_vx, -self.strafe_vy, 0.0, 0.4)
             if self.distance > self.strafe_distance:
                 self.state = States.goal_tracking
                 self.chassis.inputs[:] = (0.0, 0.0, 0.0, 1.0)
+                self.chassis.vision_pid.reset()
         if self.state == States.goal_tracking:
             # TODO - the trig to track the middle of the goal
+            self.shooter.change_state(shooter.States.shooting)
             self.chassis.range_setpoint = 1.4 #m
             self.chassis.track_vision = True
             if self.chassis.range_pid.onTarget() and self.chassis.vision_pid.onTarget():
@@ -82,9 +84,9 @@ class LowBarTower:
                 self.chassis.range_setpoint = 0.0
                 self.chassis.track_vision = False
         if self.state == States.firing:
-            self.shooter.change_state(shooter.States.shooting)
-            self.intake.state = intake.States.fire
-            self.chassis.field_oriented = True
+            if self.shooter.state == shooter.States.shooting:
+                self.intake.state = intake.States.fire
+                self.chassis.field_oriented = True
 
 class LowBarCentreTower(LowBarTower):
     MODE_NAME = "Low bar, CENTRE tower"
