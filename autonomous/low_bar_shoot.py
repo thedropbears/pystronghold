@@ -52,6 +52,7 @@ class LowBarTower:
         self.shooter.change_state(shooter.States.off)
         self.intake.stop()
         self.zero_encoders()
+        self.vision_counts = 0
         self.sd = NetworkTable.getTable('SmartDashboard')
 
     def on_disable(self):
@@ -79,7 +80,11 @@ class LowBarTower:
             self.shooter.change_state(shooter.States.shooting)
             self.chassis.range_setpoint = 1.4 #m
             self.chassis.track_vision = True
-            if self.chassis.range_pid.onTarget() and self.chassis.vision_pid.onTarget():
+            if self.chassis.vision_pid.onTarget():
+                self.vision_counts += 1
+            else:
+                self.vision_counts = 0
+            if self.chassis.range_pid.onTarget() and self.vision_counts >= 5:
                 self.state = States.firing
                 self.chassis.range_setpoint = 0.0
                 self.chassis.track_vision = False
