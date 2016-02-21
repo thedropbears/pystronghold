@@ -31,12 +31,13 @@ class Intake:
         self.velocity_queue = []
         self.intake_time = 0.0
         self.previous_velocity = 0.0
+        self.shoot_time = None
 
     def stop(self):
         self.state = States.no_ball
 
     def toggle(self):
-        if self.state != States.no_ball:
+        if self.state != States.no_ball and self.state != States.pinned:
             self.state = States.no_ball
             self.log_current()
         else:
@@ -85,12 +86,12 @@ class Intake:
             self._speed = 1.0
 
         if self.state == States.up_to_speed:
-            if self.intake_motor.getClosedLoopError() > Intake.max_speed*0.1:
+            if self.intake_motor.getClosedLoopError() > Intake.max_speed*0.01 and acceleration < 0.0:
                 self.state = States.intaking_contact
 
         if self.state == States.intaking_contact:
             self.shooter.change_state(shooter.States.backdriving)
-            if self.intake_motor.getClosedLoopError() < Intake.max_speed*0.1:
+            if acceleration > 0.0:#self.intake_motor.getClosedLoopError() < Intake.max_speed*0.1:
                 self.state = States.pinning
 
         if self.state == States.pinning:
@@ -114,6 +115,12 @@ class Intake:
             self.intake_motor.setPID(0.0, 0.0, 0.0, 1023.0/Intake.max_speed)
             if abs(self.shooter.shooter_motor.getClosedLoopError())<= 0.02*(self.shooter.max_speed) and self.shooter._speed != 0.0:
                 self._speed = 1.0
+                if not self.shoot_time:
+                    self.shoot_time = time.time()
+            if self.shoot_time and time.time() - self.shoot_time > 1.0:
+                self.state = States.no_ball
+                self.shooter.stop()
+                self.shoot_time = None
 
         if self.state != States.pinned:
             self.intake_motor.set(self._speed*Intake.max_speed)
