@@ -40,19 +40,19 @@ class StrongholdRobot(magicbot.MagicRobot):
         Ku = 1.0
         Kp = Ku*0.8
         self.heading_hold_pid = wpilib.PIDController(Kp, 0.0, 0.0*Kp*Tu/20.0, self.bno055, self.heading_hold_pid_output)
-        self.heading_hold_pid.PercentageTolerance_onTarget(3.0)
+        self.heading_hold_pid.setTolerance(3.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
         self.vision_pid_output = BlankPIDOutput()
         self.vision_pid = wpilib.PIDController(0.5, 0.005, 0.0, self.vision, self.vision_pid_output)
-        self.vision_pid.PercentageTolerance_onTarget = 5.0
+        self.vision_pid.setTolerance(3.0)
         self.vision_pid.setContinuous(False)
         self.vision_pid.setInputRange(-1.0, 1.0)
-        self.vision_pid.setOutputRange(-0.3, 0.3)
+        self.vision_pid.setOutputRange(-0.5, 0.5)
         self.vision_pid.setSetpoint(0.0)
         self.range_pid_output = BlankPIDOutput()
         self.range_pid = wpilib.PIDController(0.3, 0.0, 0.0, self.range_finder, self.range_pid_output)
-        self.range_pid.PercentageTolerance_onTarget = 3.0
+        self.range_pid.setTolerance(3.0)
         self.range_pid.setContinuous(False)
         self.range_pid.setInputRange(0, 10)
         self.range_pid.setOutputRange(-0.3, 0.3)
@@ -172,6 +172,12 @@ class StrongholdRobot(magicbot.MagicRobot):
         except:
             self.onException()
 
+        try:
+            if self.debounce(10):
+                self.shooter.backdrive()
+                self.intake.backdrive()
+        except:
+            self.onException()
 
         try:
             if self.joystick.getPOV() != -1:

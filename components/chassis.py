@@ -8,6 +8,8 @@ from .bno055 import BNO055
 from .vision import Vision
 from .range_finder import RangeFinder
 
+import logging
+
 class BlankPIDOutput(PIDOutput):
     def __init__(self):
         self.output = 0.0
@@ -212,7 +214,8 @@ class SwerveModule():
 
         if self.drive_encoder:
             self.drive_counts_per_rev = 80*6.67
-            self.drive_counts_per_metre = self.drive_counts_per_rev*(math.pi*0.1016)
+            self.drive_counts_per_metre = self.drive_counts_per_rev/(math.pi*0.1016)
+            logging.getLogger('module').info(self.drive_counts_per_metre)
             self.drive_max_speed = 570
             self._drive.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self.changeDriveControlMode(CANTalon.ControlMode.Speed)
@@ -221,6 +224,7 @@ class SwerveModule():
             self.drive_counts_per_rev = 0.0
             self.drive_max_speed = 1.0
             self.changeDriveControlMode(CANTalon.ControlMode.PercentVbus)
+        self._drive.setVoltageRampRate(150.0)
 
     def changeDriveControlMode(self, control_mode):
         if self._drive.getControlMode is not control_mode:

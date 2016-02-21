@@ -10,6 +10,7 @@ from _collections import deque
 
 class States:
     no_ball = 0
+    backdriving = 11
     up_to_speed = 10
     intaking_free = 1
     intaking_contact = 2
@@ -43,6 +44,9 @@ class Intake:
         else:
             self.state = States.intaking_free
 
+    def backdrive(self):
+        self.state = states.backdriving
+
     def fire(self):
         self.state = States.fire
 
@@ -73,6 +77,10 @@ class Intake:
         if self.state != States.no_ball and self.state != States.pinned:
             self.log_queue.append(self.current_deque[maxlen-1])
             self.velocity_queue.append(self.intake_motor.get())
+
+        if self.state == States.backdriving:
+            self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)
+            self._speed = -1.0
 
         if self.state == States.no_ball:
             self._speed = 0.0

@@ -93,8 +93,8 @@ class BNO055(GyroBase):
     def getHeadingRate(self):
         return -self.getEuler(BNO055.BNO055_GYRO_DATA_Z_LSB_ADDR)
 
-    def resetHeading(self):
-        self.offset = self.getRawHeading()
+    def resetHeading(self, heading=math.pi):
+        self.offset = self.getRawHeading() + heading
 
     def execute(self):
         pass  # Keep MagicBot happy!

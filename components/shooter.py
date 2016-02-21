@@ -33,6 +33,9 @@ class Shooter:
         self.state = States.off
         self._changed_state = True
 
+    def backdrive(self):
+        self.change_state(States.backdriving)
+
     def toggle(self):
         if self.state == States.off:
             self.start_shoot()
@@ -68,4 +71,4 @@ class Shooter:
             elif self.state == States.backdriving:
                 self._speed = 0.01*Shooter.max_speed
             self._changed_state = False
-        self.shooter_motor.set(self._speed)
+            self.shooter_motor.set(self._speed)
