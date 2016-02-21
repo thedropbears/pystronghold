@@ -94,7 +94,7 @@ class BNO055(GyroBase):
         return -self.getEuler(BNO055.BNO055_GYRO_DATA_Z_LSB_ADDR)
 
     def resetHeading(self, heading=math.pi):
-        self.offset = self.getRawHeading() + heading
+        self.offset = self.getRawHeading() - heading
 
     def execute(self):
         pass  # Keep MagicBot happy!

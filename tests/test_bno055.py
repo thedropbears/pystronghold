@@ -14,6 +14,9 @@ def test_reset_heading():
     bno055 = BNO055()
     heading = bno055.getHeading()
     assert heading != 0.0
-    bno055.resetHeading()
+    bno055.resetHeading(0.0)
     heading = bno055.getHeading()
     assert heading == 0.0
+    bno055.resetHeading(2.0)
+    heading = bno055.getHeading()
+    assert heading == 2.0
