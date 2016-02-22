@@ -69,7 +69,6 @@ class Chassis:
         self.field_oriented = True
         self.inputs = [0.0, 0.0, 0.0, None]
         self.vx = self.vy = self.vz = 0.0
-        self.throttle = None
         self.track_vision = False
         self.range_setpoint = None
         self.heading_hold = True
@@ -101,7 +100,7 @@ class Chassis:
         else:
             self.range_setpoint = 0.0
 
-    def drive(self, vX, vY, vZ, throttle):
+    def drive(self, vX, vY, vZ, absolute=False):
         motor_vectors = {}
         for name, params in Chassis.module_params.items():
             motor_vectors[name] = {'x': vX + vZ * params['vz']['x'],
@@ -123,10 +122,9 @@ class Chassis:
 
         for name in polar_vectors.keys():
             polar_vectors[name]['mag'] /= max_mag
-            if throttle is None:
+            if absolute:
                 polar_vectors[name]['mag'] = None
                 continue
-            polar_vectors[name]['mag'] *= throttle
 
         for name, polar_vector in polar_vectors.items():
             self._modules[name].steer(polar_vector['dir'], polar_vector['mag'])
@@ -137,23 +135,17 @@ class Chassis:
 
         # Are we holding a range
         if self.range_setpoint:
-            self.field_oriented = False
-            self.throttle = 1.0
             self.range_pid.enable()
             self.vx = self.range_pid_output.output
         else:
-            self.vx = self.inputs[0]
+            self.vx = self.inputs[0] * self.inputs[3]  # multiply by throttle
         # Are we strafing to get the vision target in the centre
         if self.track_vision:
             self.vision_pid.enable()
-            self.field_oriented = False
             self.vy = self.vision_pid_output.output
-            self.throttle = 1.0
         else:
-            self.vy = self.inputs[1]
-        if not (self.track_vision and self.range_setpoint):
-            self.throttle = self.inputs[3]
-        # TODO - use the gyro to hold heading here
+            self.vy = self.inputs[1] * self.inputs[3]  # multiply by throttle
+
         if self.heading_hold:
             if self.momentum and abs(self.bno055.getHeadingRate()) < 0.005:
                 self.momentum = False
@@ -166,13 +158,14 @@ class Chassis:
                 self.vz = self.heading_hold_pid_output.output
             else:
                 self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
-                self.vz = self.inputs[2]
+                self.vz = self.inputs[2] * self.inputs[3]  # multiply by throttle
+
         if self.lock_wheels:
             for name, params, module in zip(Chassis.module_params.items(), self._modules):
                 direction = constrain_angle(math.atan2(params['vz']['y'], params['vz']['x']) + math.pi/2.0)
                 module.steer(direction, 0.0)
         else:
-            self.drive(self.vx, self.vy, self.vz, self.throttle)
+            self.drive(self.vx, self.vy, self.vz)
 
     def toggle_heading_hold(self):
         self.heading_hold = not self.heading_hold

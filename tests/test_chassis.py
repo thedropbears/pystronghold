@@ -79,7 +79,7 @@ def test_chassis(robot, wpilib):
     reset_chassis(chassis)
 
     # test y axis
-    chassis.drive(0.0, 1.0, 0.0, 1.0)
+    chassis.drive(0.0, 1.0, 0.0)
     for name, module in chassis._modules.items():
         # test weather each module is facing in the right direction
         assert abs(constrain_angle(math.pi / 2.0 - module.direction)) < epsilon
@@ -91,24 +91,24 @@ def test_chassis(robot, wpilib):
           'd': math.atan2(Chassis.length, Chassis.width)
           }
 
-    chassis.drive(0.0, 0.0, 1.0, 1.0)
+    chassis.drive(0.0, 0.0, 1.0)
 
     for name, module in chassis._modules.items():
         assert abs(constrain_angle(module.direction - vz[name])) < epsilon
     reset_chassis(chassis)
 
-    chassis.drive(1.0, 1.0, 0.0, 1.0)
+    chassis.drive(1.0, 1.0, 0.0)
     for module in chassis._modules.values():
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
     reset_chassis(chassis)
 
-def test_no_throttle(robot):
+def test_absolute(robot):
     epsilon = 0.01  # Tolerance for angular floating point errors (~0.05 degrees)
     chassis = Chassis()
     reset_chassis(chassis)
-    # None for throttle should point the modules in the absolute direction
+    # Absolute argument should point the modules in the absolute direction
     # for diagnostic purposes
-    chassis.drive(-1.0, -1.0, 0.0, None)
+    chassis.drive(-1.0, -1.0, 0.0, absolute=True)
     for module in chassis._modules.values():
         assert abs(constrain_angle(module.direction + 3.0 / 4.0 * math.pi)) < epsilon
     reset_chassis(chassis)
@@ -127,11 +127,11 @@ def test_retain_wheel_direction():
     chassis = Chassis()
     for name, module in chassis._modules.items():
         module.steer(math.pi / 4.0)
-    chassis.drive(0.0, 0.0, 0.0, 1.0)
+    chassis.drive(0.0, 0.0, 0.0)
     for name, module in chassis._modules.items():
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
     # Should not matter what the throttle is, even if it is zero
-    chassis.drive(0.0, 0.0, 0.0, 0.0)
+    chassis.drive(0.0, 0.0, 0.0)
     for name, module in chassis._modules.items():
         assert abs(constrain_angle(module.direction - math.pi / 4.0)) < epsilon
 
