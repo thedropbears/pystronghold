@@ -27,6 +27,8 @@ class Vision:
         self.logger = logging.getLogger("vision")
         self._vision_process = VisionProcess(self._data_array, self._process_run_event)
         self._process_run_event.set()
+        self._smoothed_pidget = 0.0
+        self._last_time = 0.0
         self._vision_process.daemon = True
         self._vision_process.start()
         self.logger.info("Vision process started: ")
@@ -49,10 +51,14 @@ class Vision:
         return PIDSource.PIDSourceType.kDisplacement
 
     def pidGet(self):
-        return -self._data_array[0]
+        return -self._smoothed_pidget
 
     def execute(self):
-        pass
+        alpha = 0.7
+        # update the smoothed value
+        if self._data_array[2] > 0.0 and self._data_array[4] != self._last_time:
+            self._smoothed_pidget = alpha * self._data_array[0] + (1.0 - alpha) * self._smoothed_pidget
+            self._last_time = self._data_array[4]
 
 
 class VisionProcess(multiprocessing.Process):
