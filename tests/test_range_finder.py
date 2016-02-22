@@ -11,4 +11,3 @@ def test_range_finder_syntax():
     rf.range_finder_counter = MagicMock()
     pid_value = rf.pidGet()
     dist = rf.getDistance()
-    rf.execute()

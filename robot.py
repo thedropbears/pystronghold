@@ -8,6 +8,7 @@ from components.vision import Vision
 from components.bno055 import BNO055
 from components.range_finder import RangeFinder
 from components.shooter import Shooter
+from components import shooter
 from components.intake import Intake
 from components.defeater import Defeater
 
@@ -27,7 +28,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd = NetworkTable.getTable('SmartDashboard')
         self.intake_motor = wpilib.CANTalon(11)
         self.shooter_motor = wpilib.CANTalon(12)
-        self.defeater_motor = wpilib.CANTalon(5)
+        self.defeater_motor = wpilib.CANTalon(1)
         self.joystick = wpilib.Joystick(0)
         self.gamepad = wpilib.Joystick(1)
         self.pressed_buttons = set()
@@ -38,14 +39,17 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.heading_hold_pid_output = BlankPIDOutput()
         Tu = 1.2
         Ku = 1.0
-        Kp = Ku*0.8
-        self.heading_hold_pid = wpilib.PIDController(Kp, 0.0, 1.0*Kp*Tu/20.0, self.bno055, self.heading_hold_pid_output)
+        Kp = Ku * 0.2
+        self.heading_hold_pid = wpilib.PIDController(Kp,
+                                                     2.0 * Kp / Tu * 0.1,
+                                                     1.0 * Kp * Tu / 8.0,
+                                                     self.bno055, self.heading_hold_pid_output)
         self.heading_hold_pid.setTolerance(3.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
-        self.heading_hold_pid.setOutputRange(-0.5, 0.5)
+        self.heading_hold_pid.setOutputRange(-0.4, 0.4)
         self.vision_pid_output = BlankPIDOutput()
-        self.vision_pid = wpilib.PIDController(0.8, 0.01, 0.2, self.vision, self.vision_pid_output, period=0.067)
+        self.vision_pid = wpilib.PIDController(0.8, 0.02, 0.2, self.vision, self.vision_pid_output, period=0.067)
         self.vision_pid.setTolerance(3.0)
         #self.vision_pid.setToleranceBuffer(5)
         self.vision_pid.setContinuous(False)
@@ -145,7 +149,10 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(1):
-                self.shooter.toggle()
+                if self.shooter.state == shooter.States.off:
+                    self.shooter.start_shoot()
+                else:
+                    self.shooter.toggle()
                 self.intake.fire()
         except:
             self.onException()
@@ -171,8 +178,11 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(3):
-                self.chassis.toggle_vision_tracking()
-                self.chassis.toggle_range_holding(2.0)
+                self.vision_pid.reset()
+                self.range_pid.reset()
+                self.chassis.track_vision = True
+                self.chassis.range_setpoint = 2.0
+                # self.shooter.start_shoot()
         except:
             self.onException()
 
@@ -207,11 +217,17 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.chassis.set_heading_setpoint(direction)
         except:
             self.onException()
-        self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05),
-                            - rescale_js(self.joystick.getX(), deadzone=0.05),
-                            - rescale_js(self.joystick.getZ(), deadzone=0.3, exponential=1.2),
+        self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05, exponential=1.2),
+                            - rescale_js(self.joystick.getX(), deadzone=0.05, exponential=1.2),
+                            - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=5.0, rate=0.6),
                             (self.joystick.getThrottle() - 1.0) / -2.0
                             ]
+        for input in self.chassis.inputs[0:3]:
+            if input != 0.0:
+                # Break out of auto if we move the stick
+                self.chassis.range_setpoint = None
+                self.chassis.track_vision = False
+                self.chassis.field_oriented = True
         self.putData()
 
 
