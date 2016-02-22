@@ -18,9 +18,7 @@ class RangeFinder(PIDSource):
         return PIDSource.PIDSourceType.kDisplacement
 
     def pidGet(self):
-        return self._smoothed_d
-
-    def execute(self):
         alpha = 0.7
         d = self.getDistance()
         self._smoothed_d = alpha * d + (1.0 - alpha) * self._smoothed_d
+        return self._smoothed_d

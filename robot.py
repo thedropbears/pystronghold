@@ -39,10 +39,11 @@ class StrongholdRobot(magicbot.MagicRobot):
         Tu = 1.2
         Ku = 1.0
         Kp = Ku*0.8
-        self.heading_hold_pid = wpilib.PIDController(Kp, 0.0, 0.0*Kp*Tu/20.0, self.bno055, self.heading_hold_pid_output)
+        self.heading_hold_pid = wpilib.PIDController(Kp, 0.0, 1.0*Kp*Tu/20.0, self.bno055, self.heading_hold_pid_output)
         self.heading_hold_pid.setTolerance(3.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
+        self.heading_hold_pid.setOutputRange(-0.5, 0.5)
         self.vision_pid_output = BlankPIDOutput()
         self.vision_pid = wpilib.PIDController(0.8, 0.01, 0.2, self.vision, self.vision_pid_output, period=0.067)
         self.vision_pid.setTolerance(3.0)
@@ -57,7 +58,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.range_pid.setContinuous(False)
         self.range_pid.setInputRange(0, 10)
         self.range_pid.setOutputRange(-0.3, 0.3)
-        self.range_pid.setSetpoint(1.4)
+        self.range_pid.setSetpoint(2.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
         self.intake_motor.reverseSensor(True)
 
@@ -92,6 +93,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("defeater_current", self.defeater_motor.getOutputCurrent())
         self.sd.putDouble("defeater_speed", self.defeater_motor.get())
         self.sd.putDouble("joystick_throttle", self.joystick.getThrottle())
+        self.sd.putDouble("range_pid_get", self.range_finder.pidGet())
 
 
     def disabledInit(self):
@@ -149,7 +151,7 @@ class StrongholdRobot(magicbot.MagicRobot):
             self.onException()
 
         try:
-            if self.debounce(5):
+            if self.debounce(9):
                 self.chassis.toggle_heading_hold()
         except:
             self.onException()
@@ -161,9 +163,16 @@ class StrongholdRobot(magicbot.MagicRobot):
             self.onException()
 
         try:
-            if self.debounce(3):
+            if self.debounce(5):
                 self.shooter.stop()
                 self.intake.stop()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(3):
+                self.chassis.toggle_vision_tracking()
+                self.chassis.toggle_range_holding(2.0)
         except:
             self.onException()
 
@@ -186,15 +195,15 @@ class StrongholdRobot(magicbot.MagicRobot):
                 direction = 0.0
                 if self.joystick.getPOV() == 0:
                     # shooter centre goal
-                    direction = 0.0
+                    direction = math.pi
                 elif self.joystick.getPOV() == 90:
                     # shooter right goal
-                    direction = math.pi/6.0+math.pi
+                    direction = math.pi/3.0+math.pi
                 elif self.joystick.getPOV() == 270:
                     # shooter left goal
-                    direction = -math.pi/6.0+math.pi
+                    direction = -math.pi/3.0+math.pi
                 elif self.joystick.getPOV() == 180:
-                    direction = math.pi
+                    direction = 0.0
                 self.chassis.set_heading_setpoint(direction)
         except:
             self.onException()
