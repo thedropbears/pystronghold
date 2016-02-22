@@ -208,7 +208,6 @@ class SwerveModule():
         if self.drive_encoder:
             self.drive_counts_per_rev = 80*6.67
             self.drive_counts_per_metre = self.drive_counts_per_rev/(math.pi*0.1016)
-            logging.getLogger('module').info(self.drive_counts_per_metre)
             self.drive_max_speed = 570
             self._drive.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self.changeDriveControlMode(CANTalon.ControlMode.Speed)
