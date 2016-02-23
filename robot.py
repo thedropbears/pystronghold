@@ -60,7 +60,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.range_pid = wpilib.PIDController(0.3, 0.0, 0.0, self.range_finder, self.range_pid_output)
         self.range_pid.setTolerance(3.0)
         self.range_pid.setContinuous(False)
-        self.range_pid.setInputRange(0, 10)
+        self.range_pid.setInputRange(0.0, 5.0)  # approximately 5m to courtyard edge of defences
         self.range_pid.setOutputRange(-0.3, 0.3)
         self.range_pid.setSetpoint(2.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
