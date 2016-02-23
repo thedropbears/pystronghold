@@ -41,13 +41,13 @@ class StrongholdRobot(magicbot.MagicRobot):
         Ku = 1.0
         Kp = Ku * 0.2
         self.heading_hold_pid = wpilib.PIDController(Kp,
-                                                     2.0 * Kp / Tu * 0.1,
+                                                     2.0 * Kp / Tu,
                                                      1.0 * Kp * Tu / 8.0,
                                                      self.bno055, self.heading_hold_pid_output)
         self.heading_hold_pid.setTolerance(3.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
-        self.heading_hold_pid.setOutputRange(-0.4, 0.4)
+        self.heading_hold_pid.setOutputRange(-1.0, 1.0)
         self.vision_pid_output = BlankPIDOutput()
         self.vision_pid = wpilib.PIDController(0.8, 0.02, 0.2, self.vision, self.vision_pid_output, period=0.067)
         self.vision_pid.setTolerance(3.0)

@@ -160,6 +160,7 @@ class Chassis:
                 self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
                 self.vz = self.inputs[2] * self.inputs[3]  # multiply by throttle
 
+
         if self.lock_wheels:
             for name, params, module in zip(Chassis.module_params.items(), self._modules):
                 direction = constrain_angle(math.atan2(params['vz']['y'], params['vz']['x']) + math.pi/2.0)
@@ -221,9 +222,9 @@ class SwerveModule():
     def changeDriveControlMode(self, control_mode):
         if self._drive.getControlMode is not control_mode:
             if control_mode == CANTalon.ControlMode.Speed:
-                self._drive.setPID(1.0, 0.0, 0.0, 1023.0/self.drive_max_speed)
+                self._drive.setPID(1.0, 0.005, 0.005, 1023.0 / self.drive_max_speed)
             elif control_mode == CANTalon.ControlMode.Position:
-                self._drive.setPID(0.1, 0.0, 0.0, 0.0)
+                self._drive.setPID(0.1, 0.01, 0.0, 0.0)
             self._drive.changeControlMode(control_mode)
 
     @property
@@ -262,7 +263,7 @@ class SwerveModule():
 
             if self.reverse_drive:
                 speed = -speed
-            if abs(constrain_angle(self.direction) - direction) < math.pi / 6.0:
+            if abs(constrain_angle(self.direction - direction)) < math.pi / 6.0:
                 self._drive.set(speed*self.drive_max_speed)
             else:
                 self._drive.set(-speed*self.drive_max_speed)
