@@ -29,19 +29,19 @@ class Chassis:
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
     module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':45,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':30,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
                      'b': {'args': {'drive':8, 'steer':9, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':1102,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':109,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},
                      'c': {'args': {'drive':2, 'steer':4, 'absolute':True,
-                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':529,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':536,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},
                      'd': {'args': {'drive':3, 'steer':6, 'absolute':True,
-                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':600,
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':389,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }
@@ -67,7 +67,7 @@ class Chassis:
         for name, params in Chassis.module_params.items():
             self._modules[name] = SwerveModule(**(params['args']))
         self.field_oriented = True
-        self.inputs = [0.0, 0.0, 0.0, None]
+        self.inputs = [0.0, 0.0, 0.0, 0.0]
         self.vx = self.vy = self.vz = 0.0
         self.track_vision = False
         self.range_setpoint = None
@@ -87,6 +87,12 @@ class Chassis:
         # Stops the unwind problem
         for module in self._modules.values():
             module._steer.set(module._steer.getPosition())
+            
+    def onTarget(self):
+        for module in self._modules.values():
+            if not abs(module._steer.getError()) < 50:
+                return False
+        return True
 
     def toggle_field_oriented(self):
         self.field_oriented = not self.field_oriented
@@ -208,7 +214,7 @@ class SwerveModule():
 
         if self.drive_encoder:
             self.drive_counts_per_rev = 80*6.67
-            self.drive_counts_per_metre = self.drive_counts_per_rev/(math.pi*0.1016)
+            self.drive_counts_per_metre = self.drive_counts_per_rev / (math.pi * 0.1016)
             self.drive_max_speed = 570
             self._drive.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self.changeDriveControlMode(CANTalon.ControlMode.Speed)
@@ -222,7 +228,7 @@ class SwerveModule():
     def changeDriveControlMode(self, control_mode):
         if self._drive.getControlMode is not control_mode:
             if control_mode == CANTalon.ControlMode.Speed:
-                self._drive.setPID(1.0, 0.005, 0.005, 1023.0 / self.drive_max_speed)
+                self._drive.setPID(1.0, 0.005, 0.0, 1023.0 / self.drive_max_speed)
             elif control_mode == CANTalon.ControlMode.Position:
                 self._drive.setPID(0.1, 0.01, 0.0, 0.0)
             self._drive.changeControlMode(control_mode)

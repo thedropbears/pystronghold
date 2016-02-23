@@ -37,31 +37,31 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.vision = Vision()
         self.range_finder = RangeFinder(0)
         self.heading_hold_pid_output = BlankPIDOutput()
-        Tu = 1.2
-        Ku = 1.0
+        Tu = 1.6
+        Ku = 0.6
         Kp = Ku * 0.2
-        self.heading_hold_pid = wpilib.PIDController(Kp,
-                                                     2.0 * Kp / Tu,
-                                                     1.0 * Kp * Tu / 8.0,
+        self.heading_hold_pid = wpilib.PIDController(0.38,
+                                                     2.0 * Kp / Tu * 0.07,
+                                                     1.0 * Kp * Tu / 20.0 * 0,
                                                      self.bno055, self.heading_hold_pid_output)
         self.heading_hold_pid.setTolerance(3.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
         self.heading_hold_pid.setOutputRange(-1.0, 1.0)
         self.vision_pid_output = BlankPIDOutput()
-        self.vision_pid = wpilib.PIDController(0.8, 0.02, 0.2, self.vision, self.vision_pid_output, period=0.067)
+        self.vision_pid = wpilib.PIDController(0.2, 0.007, 0.4, self.vision, self.vision_pid_output, period=0.067)
         self.vision_pid.setTolerance(3.0)
         #self.vision_pid.setToleranceBuffer(5)
         self.vision_pid.setContinuous(False)
         self.vision_pid.setInputRange(-1.0, 1.0)
-        self.vision_pid.setOutputRange(-0.5, 0.5)
+        self.vision_pid.setOutputRange(-0.4, 0.4)
         self.vision_pid.setSetpoint(0.0)
         self.range_pid_output = BlankPIDOutput()
-        self.range_pid = wpilib.PIDController(0.3, 0.0, 0.0, self.range_finder, self.range_pid_output)
+        self.range_pid = wpilib.PIDController(0.25, 0.001, 0.0, self.range_finder, self.range_pid_output)
         self.range_pid.setTolerance(3.0)
         self.range_pid.setContinuous(False)
         self.range_pid.setInputRange(0.0, 5.0)  # approximately 5m to courtyard edge of defences
-        self.range_pid.setOutputRange(-0.3, 0.3)
+        self.range_pid.setOutputRange(-0.4, 0.4)
         self.range_pid.setSetpoint(2.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
         self.intake_motor.reverseSensor(True)

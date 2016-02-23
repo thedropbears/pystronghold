@@ -51,7 +51,7 @@ class Vision:
         return PIDSource.PIDSourceType.kDisplacement
 
     def pidGet(self):
-        alpha = 0.7
+        alpha = 0.5
         # update the smoothed value
         if self._data_array[2] > 0.0 and self._data_array[4] != self._last_time:
             self._smoothed_pidget = alpha * self._data_array[0] + (1.0 - alpha) * self._smoothed_pidget
