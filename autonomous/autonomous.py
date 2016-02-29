@@ -10,7 +10,7 @@ import math
 
 class States:
     init = 0
-    through_low_bar = 1
+    through_obstacle = 1
     strafing = 2
     goal_tracking = 3
     firing = 4
@@ -75,45 +75,43 @@ class ObstacleHighGoal:
         Final change in heading is specified too.'''
         dr_throttle = 0.4  # dead reckoning
         if self.state == States.init:
-            self.zero_encoders()
             if self.portcullis:
                 self.defeater_motor.set(-0.5)
             if not self.chassis.onTarget():
                 return
-            self.state = States.through_low_bar
-            return
-        if self.state == States.through_low_bar:
-            forward_distance = self.straight
-            self.chassis.inputs[:] = (-1.0, 0.0, 0.0, (dr_throttle - 0.1) * self.distance / forward_distance + 0.1)
-            if self.distance > forward_distance:  # This is always the same
-                self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
-                self.state = States.spinning
+            if not abs(self.distance) < 0.01:
+                self.zero_encoders()
                 return
+            self.state = States.through_obstacle
+        if self.state == States.through_obstacle:
+            self.chassis.inputs[:] = (-1.0, 0.0, 0.0, dr_throttle)
+            if self.distance > self.straight:  # This is always the same
+                self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
+                self.chassis.inputs[:] = (0.0, 0.0, 0.0, 0.0)
+                self.state = States.spinning
         if self.state == States.spinning:
             self.defeater_motor.set(0.3)
-            if True:  # self.chassis.heading_hold_pid.onTarget():
-                # self.zero_encoders()
+            if self.chassis.heading_hold_pid.onTarget():
+                if not abs(self.distance) < 0.01:
+                    self.zero_encoders()
+                    return
                 self.state = States.strafing
-                return
         if self.state == States.strafing:
             final_throttle = self.chassis.range_pid.maximumOutput
             # scale throttle smoothly between dead reckoning throttle and range max throttle
             throttle = (final_throttle - dr_throttle) * self.distance / self.strafe_distance + dr_throttle
             self.chassis.inputs[:] = (-self.vx, -self.vy, 0.0, throttle)
-            if self.distance > self.strafe_distance + self.straight:
+            if self.distance > self.strafe_distance:
                 self.state = States.range_finding
                 self.chassis.range_pid.reset()
                 self.chassis.range_setpoint = 1.4  # m
                 self.chassis.inputs[:] = (0.0, 0.0, 0.0, 0.0)
-                return
         if self.state == States.range_finding:
             if self.chassis.range_pid.onTarget():
                 self.chassis.vision_pid.reset()
                 self.state = States.goal_tracking
-                return
         if self.state == States.goal_tracking:
             # self.shooter.change_state(shooter.States.shooting)
-            self.chassis.range_setpoint = 1.4  # m
             self.chassis.track_vision = True
             if self.chassis.vision_pid.onTarget():
                 self.vision_counts += 1
@@ -123,7 +121,6 @@ class ObstacleHighGoal:
                 self.state = States.firing
                 self.chassis.range_setpoint = 0.0
                 self.chassis.track_vision = False
-                return
         if self.state == States.firing:
             if self.shooter.state == shooter.States.shooting:
                 self.intake.state = intake.States.fire
