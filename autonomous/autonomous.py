@@ -53,7 +53,7 @@ class ObstacleHighGoal:
         self.chassis.bno055.resetHeading()
         self.chassis.set_heading_setpoint(self.chassis.bno055.getAngle())
         self.chassis.heading_hold = True
-        self.chassis.field_oriented = False
+        self.chassis.field_oriented = True
         self.chassis.drive(1, 0, 0, 0.0001)
         self.state = States.init
         self.shooter.change_state(shooter.States.off)
@@ -84,7 +84,7 @@ class ObstacleHighGoal:
                 return
             self.state = States.through_obstacle
         if self.state == States.through_obstacle:
-            self.chassis.inputs[:] = (-1.0, 0.0, 0.0, dr_throttle)
+            self.chassis.inputs[:] = (1.0, 0.0, 0.0, dr_throttle)
             if self.distance > self.straight:  # This is always the same
                 self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
                 self.chassis.inputs[:] = (0.0, 0.0, 0.0, 0.0)
@@ -100,7 +100,7 @@ class ObstacleHighGoal:
             final_throttle = self.chassis.range_pid.maximumOutput
             # scale throttle smoothly between dead reckoning throttle and range max throttle
             throttle = (final_throttle - dr_throttle) * self.distance / self.strafe_distance + dr_throttle
-            self.chassis.inputs[:] = (-self.vx, -self.vy, 0.0, throttle)
+            self.chassis.inputs[:] = (self.vx, self.vy, 0.0, throttle)
             if self.distance > self.strafe_distance:
                 self.state = States.range_finding
                 self.chassis.range_pid.reset()
@@ -244,4 +244,3 @@ class Portcullis4RightTower(ObstacleHighGoal):
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
         super().__init__(1.2, 0.0, 0.0, True)
-
