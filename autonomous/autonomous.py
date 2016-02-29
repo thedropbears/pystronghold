@@ -150,30 +150,6 @@ class LowBarRightTower(ObstacleHighGoal):
         super().__init__(1.4, -1.5, math.pi / 3.0)
 
 
-class Portcullis1CentreTower(ObstacleHighGoal):
-    MODE_NAME = "Portcullis position 1, CENTRE tower"
-
-    def __init__(self):
-        # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, 0.0, 0.0, True)
-
-
-class Portcullis1LeftTower(ObstacleHighGoal):
-    MODE_NAME = "Portcullis position 1, LEFT tower"
-
-    def __init__(self):
-        # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, 0.0, 0.0, True)
-
-
-class Portcullis1RightTower(ObstacleHighGoal):
-    MODE_NAME = "Portcullis position 1, RIGHT tower"
-
-    def __init__(self):
-        # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, 0.0, 0.0, True)
-
-
 class Portcullis2CentreTower(ObstacleHighGoal):
     MODE_NAME = "Portcullis position 2, CENTRE tower"
 
@@ -240,6 +216,30 @@ class Portcullis4LeftTower(ObstacleHighGoal):
 
 class Portcullis4RightTower(ObstacleHighGoal):
     MODE_NAME = "Portcullis position 4, RIGHT tower"
+
+    def __init__(self):
+        # Barker field: delta_x = 2.4, delta_y = -3.8
+        super().__init__(1.2, 0.0, 0.0, True)
+
+
+class Portcullis5CentreTower(ObstacleHighGoal):
+    MODE_NAME = "Portcullis position 5, CENTRE tower"
+
+    def __init__(self):
+        # Barker field: delta_x = 2.4, delta_y = -3.8
+        super().__init__(1.2, 0.0, 0.0, True)
+
+
+class Portcullis5LeftTower(ObstacleHighGoal):
+    MODE_NAME = "Portcullis position 5, LEFT tower"
+
+    def __init__(self):
+        # Barker field: delta_x = 2.4, delta_y = -3.8
+        super().__init__(1.2, 0.0, 0.0, True)
+
+
+class Portcullis5RightTower(ObstacleHighGoal):
+    MODE_NAME = "Portcullis position 5, RIGHT tower"
 
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
