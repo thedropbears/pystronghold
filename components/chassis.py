@@ -2,7 +2,7 @@
 import math
 
 from wpilib import CANTalon, PIDController
-from wpilib.interfaces import PIDOutput
+from wpilib.interfaces import PIDOutput, PIDSource
 
 from .bno055 import BNO055
 from .vision import Vision
@@ -52,10 +52,6 @@ class Chassis:
     range_finder = RangeFinder
     heading_hold_pid_output = BlankPIDOutput
     heading_hold_pid = PIDController
-    vision_pid_output = BlankPIDOutput
-    vision_pid = PIDController
-    range_pid_output = BlankPIDOutput
-    range_pid = PIDController
 
     def __init__(self):
         super().__init__()
@@ -76,6 +72,17 @@ class Chassis:
         self.momentum = False
         import robot
         self.rescale_js = robot.rescale_js
+
+        self.distance_pid_heading = 0.0  # Relative to field
+        self.distance_pid_output = BlankPIDOutput()
+        # TODO tune the distance PID values
+        self.distance_pid = PIDController(0.2, 0.007, 0.4, self, self.distance_pid_output)
+        self.distance_pid.setTolerance(3.0)
+        self.distance_pid.setToleranceBuffer(5)
+        self.distance_pid.setContinuous(False)
+        self.distance_pid.setInputRange(-1.0, 1.0)  # TODO check that this range is good for us
+        self.distance_pid.setOutputRange(-0.4, 0.4)
+        self.distance_pid.setSetpoint(0.0)
 
     def on_enable(self):
         self.bno055.resetHeading()
@@ -99,22 +106,41 @@ class Chassis:
 
     def toggle_vision_tracking(self):
         self.track_vision = not self.track_vision
+        if self.track_vision:
+            self.distance_pid.enable()
 
     def toggle_range_holding(self, setpoint):
         if not self.range_setpoint:
             self.range_setpoint = setpoint
+            self.distance_pid.enable()
         else:
             self.range_setpoint = 0.0
 
     def zero_encoders(self):
         for module in self._modules.values():
-            module._drive.setPosition(0.0)
+            module.zero_distance()
+
+    def field_displace(self, x, y):
+        '''Use the distance PID to displace the robot by x,y in field reference frame.'''
+        self.zero_encoders()
+        d = (x ** 2 + y ** 2) ** 0.5
+        fx, fy = field_orient(x, y, self.bno055.getHeading())
+        self.distance_pid_heading = math.atan2(fx, fy)
+        self.distance_pid.disable()
+        self.distance_pid.setSetpoint(d)
+        self.distance_pid.enable()
+
+    def pidGet(self):
+        return self.distance
+
+    def getPIDSourceType(self):
+        return PIDSource.PIDSourceType.kDisplacement
 
     @property
     def distance(self):
         distances = 0.0
         for module in self._modules.values():
-            distances += abs(module._drive.getEncPosition()) / module.drive_counts_per_metre
+            distances += abs(module.distance) / module.drive_counts_per_metre
         return distances / len(self._modules)
 
     def drive(self, vX, vY, vZ, absolute=False):
@@ -150,17 +176,25 @@ class Chassis:
         if self.field_oriented and self.inputs[3] is not None:
             self.inputs[0:2] = field_orient(self.inputs[0], self.inputs[1], self.bno055.getHeading())
 
-        # Are we holding a range
-        if self.range_setpoint:
-            self.range_pid.enable()
-            self.vx = self.range_pid_output.output
+        # Are we in setpoint displacement mode?
+        if self.distance_pid.isEnable():
+            if self.distance_pid.onTarget():
+                # Let's see if we need to move further
+                x = y = 0.0
+                if self.range_setpoint:
+                    x = self.range_finder.pidGet() - self.range_setpoint
+                if self.track_vision:
+                    y = self.vision.pidGet()  # TODO we need proper scaling factors here
+                self.distance_pid.disable()
+                self.zero_encoders()
+                self.distance_pid_heading = math.atan2(y, x)
+                self.distance_pid.enable()
+
+            # Keep driving
+            self.vx = math.cos(self.distance_pid_heading) * self.distance_pid_output.output
+            self.vy = math.sin(self.distance_pid_heading) * self.distance_pid_output.output
         else:
             self.vx = self.inputs[0] * self.inputs[3]  # multiply by throttle
-        # Are we strafing to get the vision target in the centre
-        if self.track_vision:
-            self.vision_pid.enable()
-            self.vy = self.vision_pid_output.output
-        else:
             self.vy = self.inputs[1] * self.inputs[3]  # multiply by throttle
 
         if self.heading_hold:
@@ -201,6 +235,7 @@ class SwerveModule():
         self.reverse_drive = reverse_drive
         self._steer = CANTalon(steer)
         self.drive_encoder = drive_encoder
+        self._distance_offset = 0  # Offset the drive distance counts
 
         # Set up the motor controllers
         # Different depending on whether we are using absolute encoders or not
@@ -255,6 +290,14 @@ class SwerveModule():
         # Read the current speed from the controller setpoint
         setpoint = self._drive.getSetpoint()
         return float(setpoint)
+
+    @property
+    def distance(self):
+        # Read the current position from the encoder and remove the offset
+        return self._drive.getEncPosition() - self._distance_offset
+
+    def zero_distance(self):
+        self._distance_offset = self._drive.getEncPosition()
 
     def steer(self, direction, speed=None):
         if self.drive_encoder:

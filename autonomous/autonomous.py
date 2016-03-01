@@ -3,6 +3,7 @@ from components.chassis import Chassis, constrain_angle
 from components import shooter
 from components import intake
 from components import defeater
+from components import bno055
 from wpilib import CANTalon
 
 import math
@@ -24,6 +25,7 @@ class ObstacleHighGoal:
     intake = intake.Intake
     defeater = defeater.Defeater
     defeater_motor = CANTalon
+    bno055 = bno055.BNO055
 
     def __init__(self, delta_x, delta_y, delta_heading=0.0, portcullis=False):
         self.straight = 3.4
@@ -39,8 +41,8 @@ class ObstacleHighGoal:
     def on_enable(self):
         """Set up the autonomous routine"""
         # Reset the IMU
-        self.chassis.bno055.resetHeading()
-        self.chassis.set_heading_setpoint(self.chassis.bno055.getAngle())
+        self.bno055.resetHeading()
+        self.chassis.set_heading_setpoint(self.bno055.getAngle())
         self.chassis.heading_hold = True
         self.chassis.field_oriented = True
         self.chassis.drive(1, 0, 0, 0.0001)
@@ -62,58 +64,42 @@ class ObstacleHighGoal:
         '''Drive forward the same amount, then move by delta_x and delta_y
         to the position where the vision and range finder take over.
         Final change in heading is specified too.'''
-        dr_throttle = 0.4  # dead reckoning
         if self.state == States.init:
             if self.portcullis:
                 self.defeater_motor.set(-0.5)
             if not self.chassis.onTarget():
                 return
-            if not abs(self.chassis.distance) < 0.01:
-                self.chassis.zero_encoders()
-                return
+            self.chassis.field_displace(self.straight, 0.0)
             self.state = States.through_obstacle
-        if self.state == States.through_obstacle:
-            self.chassis.inputs[:] = (1.0, 0.0, 0.0, dr_throttle)
-            if self.chassis.distance > self.straight:  # This is always the same
-                self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
-                self.chassis.inputs[:] = (0.0, 0.0, 0.0, 0.0)
-                self.state = States.spinning
-        if self.state == States.spinning:
+        if self.state == States.through_obstacle and self.chassis.distance_pid.onTarget():
+            # Let the distance PID do its magic...
+            # Turn off the distance PID, and spin to the right angle
+            self.chassis.distance_pid.disable()
+            self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
             self.defeater_motor.set(0.3)
-            if self.chassis.heading_hold_pid.onTarget():
-                if not abs(self.chassis.distance) < 0.01:
-                    self.chassis.zero_encoders()
-                    return
-                self.state = States.strafing
-        if self.state == States.strafing:
-            final_throttle = self.chassis.range_pid.maximumOutput
-            # scale throttle smoothly between dead reckoning throttle and range max throttle
-            throttle = (final_throttle - dr_throttle) * self.chassis.distance / self.strafe_distance + dr_throttle
-            self.chassis.inputs[:] = (self.vx, self.vy, 0.0, throttle)
-            if self.chassis.distance > self.strafe_distance:
-                self.state = States.range_finding
-                self.chassis.range_pid.reset()
-                self.chassis.range_setpoint = 1.4  # m
-                self.chassis.inputs[:] = (0.0, 0.0, 0.0, 0.0)
-        if self.state == States.range_finding:
-            if self.chassis.range_pid.onTarget():
-                self.chassis.vision_pid.reset()
-                self.state = States.goal_tracking
-        if self.state == States.goal_tracking:
-            # self.shooter.change_state(shooter.States.shooting)
+            self.state = States.spinning
+        if self.state == States.spinning and self.chassis.heading_hold_pid.onTarget():
+            # Turn on the distance PID for the next displacement
+            self.chassis.field_displace(self.delta_x, self.delta_y)
+            self.state = States.strafing
+        if self.state == States.strafing and self.chassis.distance_pid.onTarget():
+            # Dead reckoning is done - engage the rangefinder
+            # Leave the distance PID running as it will read the rf for us
+            self.state = States.range_finding
+            self.chassis.range_setpoint = 1.4  # m
+        if self.state == States.range_finding and self.chassis.distance_pid.onTarget():
+            # Range is good, now turn on the vision tracking
             self.chassis.track_vision = True
-            if self.chassis.vision_pid.onTarget():
-                self.vision_counts += 1
-            else:
-                self.vision_counts = 0
-            if self.chassis.range_pid.onTarget() and self.vision_counts >= 5:
-                self.state = States.firing
-                self.chassis.range_setpoint = 0.0
-                self.chassis.track_vision = False
-        if self.state == States.firing:
-            if self.shooter.state == shooter.States.shooting:
-                self.intake.state = intake.States.fire
-                self.chassis.field_oriented = True
+            self.state = States.goal_tracking
+            # self.shooter.change_state(shooter.States.shooting)
+        if self.state == States.goal_tracking and self.chassis.distance_pid.onTarget():
+            # We made it to the target point, so fire away!
+            self.state = States.firing
+            self.chassis.range_setpoint = 0.0
+            self.chassis.track_vision = False
+        if self.state == States.firing and self.shooter.state == shooter.States.shooting:
+            self.intake.state = intake.States.fire
+            self.chassis.field_oriented = True
 
 
 class LowBarCentreTower(ObstacleHighGoal):

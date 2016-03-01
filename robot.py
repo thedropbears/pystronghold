@@ -48,21 +48,6 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
         self.heading_hold_pid.setOutputRange(-1.0, 1.0)
-        self.vision_pid_output = BlankPIDOutput()
-        self.vision_pid = wpilib.PIDController(0.2, 0.007, 0.4, self.vision, self.vision_pid_output, period=0.067)
-        self.vision_pid.setTolerance(3.0)
-        #self.vision_pid.setToleranceBuffer(5)
-        self.vision_pid.setContinuous(False)
-        self.vision_pid.setInputRange(-1.0, 1.0)
-        self.vision_pid.setOutputRange(-0.4, 0.4)
-        self.vision_pid.setSetpoint(0.0)
-        self.range_pid_output = BlankPIDOutput()
-        self.range_pid = wpilib.PIDController(0.25, 0.001, 0.0, self.range_finder, self.range_pid_output)
-        self.range_pid.setTolerance(3.0)
-        self.range_pid.setContinuous(False)
-        self.range_pid.setInputRange(0.0, 5.0)  # approximately 5m to courtyard edge of defences
-        self.range_pid.setOutputRange(-0.4, 0.4)
-        self.range_pid.setSetpoint(2.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
         self.intake_motor.reverseSensor(True)
 
@@ -88,12 +73,11 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
         self.sd.putDouble("heading_hold_pid_setpoint", self.heading_hold_pid.getSetpoint())
         self.sd.putDouble("intake_state", self.intake.state)
-        self.sd.putDouble("vision_pid_output", self.chassis.vision_pid_output.output)
+        self.sd.putDouble("distance_pid_output", self.chassis.distance_pid_output.output)
         self.sd.putBoolean("track_vision", self.chassis.track_vision)
         self.sd.putDouble("pov", self.joystick.getPOV())
         self.sd.putDouble("gyro_z_rate", self.bno055.getHeadingRate())
         self.sd.putDouble("heading_hold_error", self.heading_hold_pid.getSetpoint()-self.bno055.getAngle())
-        self.sd.putDouble("range_error", self.range_pid.getSetpoint()-self.range_finder.pidGet())
         self.sd.putDouble("defeater_current", self.defeater_motor.getOutputCurrent())
         self.sd.putDouble("defeater_speed", self.defeater_motor.get())
         self.sd.putDouble("joystick_throttle", self.joystick.getThrottle())
@@ -178,10 +162,10 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(3):
-                self.vision_pid.reset()
-                self.range_pid.reset()
+
                 self.chassis.track_vision = True
                 self.chassis.range_setpoint = 2.0
+                self.chassis.distance_pid.enable()
                 # self.shooter.start_shoot()
         except:
             self.onException()
@@ -225,6 +209,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         for input in self.chassis.inputs[0:3]:
             if input != 0.0:
                 # Break out of auto if we move the stick
+                self.chassis.distance_pid.disable()
                 self.chassis.range_setpoint = None
                 self.chassis.track_vision = False
                 self.chassis.field_oriented = True

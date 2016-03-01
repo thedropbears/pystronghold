@@ -1,12 +1,14 @@
 
 import math
 import pytest
+from unittest.mock import MagicMock
 
 from components.chassis import SwerveModule
 from components.chassis import Chassis, constrain_angle, field_orient
 from components import chassis
 
 epsilon = 0.01  # Tolerance for floating point errors (~0.5 degrees)
+
 
 def test_swerve_init(wpilib, hal_data):
     swerve = SwerveModule(0, 1)
@@ -145,6 +147,7 @@ def test_toggle_field_oriented():
 
 def test_toggle_track_vision():
     chassis = Chassis()
+    chassis.distance_pid = MagicMock()
     vision = chassis.track_vision
     chassis.toggle_vision_tracking()
     assert chassis.track_vision is not vision
@@ -153,6 +156,7 @@ def test_toggle_track_vision():
 
 def test_toggle_range_holding():
     chassis = Chassis()
+    chassis.distance_pid = MagicMock()
     chassis.range_setpoint = 0.0
     chassis.toggle_range_holding(2.0)
     assert chassis.range_setpoint == 2.0
