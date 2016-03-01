@@ -36,17 +36,6 @@ class ObstacleHighGoal:
         self.vx = delta_x / self.strafe_distance
         self.vy = delta_y / self.strafe_distance
 
-    @property
-    def distance(self):
-        distances = 0.0
-        for module in self.chassis._modules.values():
-            distances += abs(module._drive.getEncPosition())/module.drive_counts_per_metre
-        return distances/4.0
-
-    def zero_encoders(self):
-        for module in self.chassis._modules.values():
-            module._drive.setPosition(0.0)
-
     def on_enable(self):
         """Set up the autonomous routine"""
         # Reset the IMU
@@ -58,7 +47,7 @@ class ObstacleHighGoal:
         self.state = States.init
         self.shooter.change_state(shooter.States.off)
         self.intake.stop()
-        self.zero_encoders()
+        self.chassis.zero_encoders()
         self.vision_counts = 0
         self.timeout = 0
 
@@ -79,29 +68,29 @@ class ObstacleHighGoal:
                 self.defeater_motor.set(-0.5)
             if not self.chassis.onTarget():
                 return
-            if not abs(self.distance) < 0.01:
-                self.zero_encoders()
+            if not abs(self.chassis.distance) < 0.01:
+                self.chassis.zero_encoders()
                 return
             self.state = States.through_obstacle
         if self.state == States.through_obstacle:
             self.chassis.inputs[:] = (1.0, 0.0, 0.0, dr_throttle)
-            if self.distance > self.straight:  # This is always the same
+            if self.chassis.distance > self.straight:  # This is always the same
                 self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
                 self.chassis.inputs[:] = (0.0, 0.0, 0.0, 0.0)
                 self.state = States.spinning
         if self.state == States.spinning:
             self.defeater_motor.set(0.3)
             if self.chassis.heading_hold_pid.onTarget():
-                if not abs(self.distance) < 0.01:
-                    self.zero_encoders()
+                if not abs(self.chassis.distance) < 0.01:
+                    self.chassis.zero_encoders()
                     return
                 self.state = States.strafing
         if self.state == States.strafing:
             final_throttle = self.chassis.range_pid.maximumOutput
             # scale throttle smoothly between dead reckoning throttle and range max throttle
-            throttle = (final_throttle - dr_throttle) * self.distance / self.strafe_distance + dr_throttle
+            throttle = (final_throttle - dr_throttle) * self.chassis.distance / self.strafe_distance + dr_throttle
             self.chassis.inputs[:] = (self.vx, self.vy, 0.0, throttle)
-            if self.distance > self.strafe_distance:
+            if self.chassis.distance > self.strafe_distance:
                 self.state = States.range_finding
                 self.chassis.range_pid.reset()
                 self.chassis.range_setpoint = 1.4  # m

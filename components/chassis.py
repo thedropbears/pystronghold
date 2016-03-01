@@ -87,7 +87,7 @@ class Chassis:
         # Stops the unwind problem
         for module in self._modules.values():
             module._steer.set(module._steer.getPosition())
-            
+
     def onTarget(self):
         for module in self._modules.values():
             if not abs(module._steer.getError()) < 50:
@@ -105,6 +105,17 @@ class Chassis:
             self.range_setpoint = setpoint
         else:
             self.range_setpoint = 0.0
+
+    def zero_encoders(self):
+        for module in self._modules.values():
+            module._drive.setPosition(0.0)
+
+    @property
+    def distance(self):
+        distances = 0.0
+        for module in self._modules.values():
+            distances += abs(module._drive.getEncPosition()) / module.drive_counts_per_metre
+        return distances / len(self._modules)
 
     def drive(self, vX, vY, vZ, absolute=False):
         motor_vectors = {}
