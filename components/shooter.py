@@ -65,10 +65,10 @@ class Shooter:
 
         if self._changed_state:
             if self.state == States.shooting:
-                self._speed = -self.shoot_percentage*Shooter.max_speed
+                self._speed = -self.shoot_percentage
             elif self.state == States.off:
                 self._speed = 0.0
             elif self.state == States.backdriving:
-                self._speed = 0.01*Shooter.max_speed
+                self._speed = 0.01
             self._changed_state = False
-            self.shooter_motor.set(self._speed)
+            self.shooter_motor.set(self._speed*Shooter.max_speed)

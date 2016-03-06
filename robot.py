@@ -70,10 +70,11 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("raw_yaw", self.bno055.getRawHeading())
         self.sd.putDouble("raw_pitch", self.bno055.getPitch())
         self.sd.putDouble("raw_roll", self.bno055.getRoll())
-        self.sd.putDouble("shooter_speed", self.shooter._speed)
+        self.sd.putDouble("shooter_speed", -self.shooter._speed) # minus sign here so +ve is shooting
         self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
         self.sd.putDouble("heading_hold_pid_setpoint", self.heading_hold_pid.getSetpoint())
         self.sd.putDouble("intake_state", self.intake.state)
+        self.sd.putDouble("intake_speed", self.intake._speed)
         self.sd.putDouble("distance_pid_output", self.chassis.distance_pid_output.output)
         self.sd.putBoolean("track_vision", self.chassis.track_vision)
         self.sd.putDouble("pov", self.joystick.getPOV())
