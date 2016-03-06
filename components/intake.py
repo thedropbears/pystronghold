@@ -11,6 +11,7 @@ from _collections import deque
 class States:
     no_ball = 0
     backdriving = 11
+    backdriving_slow = 12
     up_to_speed = 10
     intaking_free = 1
     intaking_contact = 2
@@ -46,6 +47,9 @@ class Intake:
 
     def backdrive(self):
         self.state = States.backdriving
+
+    def backdrive_slow(self):
+        self.state = States.backdriving_slow
 
     def fire(self):
         self.state = States.fire
@@ -117,6 +121,10 @@ class Intake:
             self._speed = 0.0
             if self.log_queue:
                 self.log_current()
+
+        if self.state == States.backdriving_slow:
+            self._speed = -0.3
+            self.state = States.no_ball
 
         if self.state == States.fire:
             self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)

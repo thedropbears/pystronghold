@@ -31,7 +31,8 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.defeater_motor = wpilib.CANTalon(1)
         self.joystick = wpilib.Joystick(0)
         self.gamepad = wpilib.Joystick(1)
-        self.pressed_buttons = set()
+        self.pressed_buttons_js = set()
+        self.pressed_buttons_gp = set()
         # needs to be created here so we can pass it in to the PIDController
         self.bno055 = BNO055()
         self.vision = Vision()
@@ -201,6 +202,13 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.chassis.set_heading_setpoint(direction)
         except:
             self.onException()
+
+        try:
+            if self.gamepad.getRawButton(3):
+                intake.backdrive_slow()
+        except:
+            self.onException()
+
         self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05, exponential=1.2),
                             - rescale_js(self.joystick.getX(), deadzone=0.05, exponential=1.2),
                             - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=5.0, rate=0.6),
@@ -220,15 +228,22 @@ class StrongholdRobot(magicbot.MagicRobot):
         """This function is called periodically during test mode."""
         wpilib.LiveWindow.run()
 
-    def debounce(self, button):
-        if self.joystick.getRawButton(button):
-            if button in self.pressed_buttons:
+    def debounce(self, button, gamepad = False):
+        device = None
+        if gamepad:
+            pressed_buttons = self.pressed_buttons_gp
+            device = self.gamepad
+        else:
+            pressed_buttons = self.pressed_buttons_js
+            device = self.joystick
+        if device.getRawButton(button):
+            if button in pressed_buttons:
                 return False
             else:
-                self.pressed_buttons.add(button)
+                pressed_buttons.add(button)
                 return True
         else:
-            self.pressed_buttons.discard(button)
+            pressed_buttons.discard(button)
             return False
 
 def rescale_js(value, deadzone=0.0, exponential=0.0, rate=1.0):
