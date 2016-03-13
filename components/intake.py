@@ -123,7 +123,7 @@ class Intake:
                 self.log_current()
 
         if self.state == States.backdriving_slow:
-            self._speed = -0.3
+            self._speed = -0.1
             self.state = States.no_ball
 
         if self.state == States.fire:
