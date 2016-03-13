@@ -206,7 +206,15 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.gamepad.getRawButton(3):
-                intake.backdrive_slow()
+                self.intake.backdrive_slow()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(1, gamepad=True):
+                self.chassis.zero_encoders()
+                self.chassis.distance_pid.setSetpoint(1.2)
+                self.chassis.distance_pid.enable()
         except:
             self.onException()
 
