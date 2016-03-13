@@ -76,7 +76,7 @@ class Chassis:
         self.distance_pid_heading = 0.0  # Relative to field
         self.distance_pid_output = BlankPIDOutput()
         # TODO tune the distance PID values
-        self.distance_pid = PIDController(0.2, 0.007, 0.4, self, self.distance_pid_output)
+        self.distance_pid = PIDController(1.0, 0.007, 0.0, self, self.distance_pid_output)
         self.distance_pid.setTolerance(3.0)
         self.distance_pid.setToleranceBuffer(5)
         self.distance_pid.setContinuous(False)
@@ -107,11 +107,15 @@ class Chassis:
     def toggle_vision_tracking(self):
         self.track_vision = not self.track_vision
         if self.track_vision:
+            self.zero_encoders()
+            self.distance_pid.setSetpoint(0.0)
             self.distance_pid.enable()
 
     def toggle_range_holding(self, setpoint):
         if not self.range_setpoint:
             self.range_setpoint = setpoint
+            self.zero_encoders()
+            self.distance_pid.setSetpoint(0.0)
             self.distance_pid.enable()
         else:
             self.range_setpoint = 0.0
@@ -184,10 +188,15 @@ class Chassis:
                 if self.range_setpoint:
                     x = self.range_finder.pidGet() - self.range_setpoint
                 if self.track_vision:
-                    y = self.vision.pidGet()  # TODO we need proper scaling factors here
+                    y = self.vision.pidGet()*self.range_finder.pidGet()  # TODO we need proper scaling factors here
+                    if y > 0.1:
+                        y = 0.1
+                    elif y < -0.1:
+                        y = -0.1
                 self.distance_pid.disable()
                 self.zero_encoders()
-                self.distance_pid_heading = math.atan2(y, x)
+                self.distance_pid_heading = math.atan2(y, x)        
+                self.distance_pid.setSetpoint(math.sqrt(x**2+y**2))
                 self.distance_pid.enable()
 
             # Keep driving
