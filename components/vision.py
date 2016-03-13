@@ -111,6 +111,9 @@ class VisionProcess(multiprocessing.Process):
 
         # get the area of the contour
         area = cv2.contourArea(cnt)
+        if area /Vision.video_width/Vision.video_height > 0.05:
+            result_image = image
+            return 0.0, 0.0, 0.0, 0.0, result_image
         # get the perimeter of the contour
         perimeter = cv2.arcLength(cnt, True)
         # get a rectangle and then a box around the largest countour
