@@ -86,13 +86,13 @@ class ObstacleHighGoal:
             # Dead reckoning is done - engage the rangefinder
             # Leave the distance PID running as it will read the rf for us
             self.state = States.range_finding
-            self.chassis.range_setpoint = 1.4  # m
-        if self.state == States.range_finding and self.chassis.distance_pid.onTarget():
+            self.chassis.range_setpoint = self.chassis.correct_range  # m
+        if self.state == States.range_finding and self.chassis.on_range_target(): #self.chassis.distance_pid.onTarget():
             # Range is good, now turn on the vision tracking
             self.chassis.track_vision = True
             self.state = States.goal_tracking
-            # self.shooter.change_state(shooter.States.shooting)
-        if self.state == States.goal_tracking and self.chassis.distance_pid.onTarget():
+            self.shooter.change_state(shooter.States.shooting)
+        if self.state == States.goal_tracking and self.chassis.on_vision_target(): #self.chassis.distance_pid.onTarget():
             # We made it to the target point, so fire away!
             self.state = States.firing
             self.chassis.range_setpoint = 0.0
@@ -108,7 +108,8 @@ class LowBarCentreTower(ObstacleHighGoal):
 
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, -1.0, 0.0)
+        #super().__init__(2.0, -1.8, 0.0)
+        super().__init__(2.4, -3.8, 0.0)
 
 
 class LowBarLeftTower(ObstacleHighGoal):
