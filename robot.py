@@ -26,7 +26,7 @@ class StrongholdRobot(magicbot.MagicRobot):
     def createObjects(self):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
-        self.intake_motor = wpilib.CANTalon(11)
+        self.intake_motor = wpilib.CANTalon(14)
         self.shooter_motor = wpilib.CANTalon(12)
         self.defeater_motor = wpilib.CANTalon(1)
         self.joystick = wpilib.Joystick(0)
@@ -224,6 +224,12 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.chassis.zero_encoders()
                 self.chassis.distance_pid.setSetpoint(1.2)
                 self.chassis.distance_pid.enable()
+        except:
+            self.onException()
+
+        try:
+            if self.gamepad.getRawButton(4):
+                self.shooter.backdrive_recovery()
         except:
             self.onException()
 
