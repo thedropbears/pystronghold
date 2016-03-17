@@ -28,7 +28,7 @@ class Chassis:
 
     # the number that you need to multiply the vz components by to get them in the appropriate directions
     #                   vx   vy
-    module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
+    """module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':True,
                                     'reverse_drive':True, 'reverse_steer':True, 'zero_reading':30,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},
@@ -44,8 +44,24 @@ class Chassis:
                                     'reverse_drive':True, 'reverse_steer':True, 'zero_reading':389,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
+                     }"""
+    module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':False,                                     
+                                    'reverse_drive':True, 'reverse_steer':False, 'zero_reading':30,      
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},                 
+                           'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},               
+                     'b': {'args': {'drive':8, 'steer':9, 'absolute':False,                         
+                                    'reverse_drive':False, 'reverse_steer':False, 'zero_reading':109,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},             
+                           'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},                
+                     'c': {'args': {'drive':2, 'steer':4, 'absolute':False,                          
+                                    'reverse_drive':False, 'reverse_steer':False, 'zero_reading':536,
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},             
+                           'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},                
+                     'd': {'args': {'drive':3, 'steer':6, 'absolute':False,                          
+                                    'reverse_drive':True, 'reverse_steer':False, 'zero_reading':389, 
+                                    'drive_encoder':True, 'reverse_drive_encoder':True},             
+                           'vz': {'x': vz_components['x'], 'y': vz_components['y']}}                 
                      }
-
     # Use the magic here!
     bno055 = BNO055
     vision = Vision
