@@ -28,7 +28,7 @@ class ObstacleHighGoal:
     bno055 = bno055.BNO055
 
     def __init__(self, delta_x, delta_y, delta_heading=0.0, portcullis=False):
-        self.straight = 3.4
+        self.straight = 5.0
         self.delta_x = delta_x
         self.delta_y = delta_y
         self.delta_heading = delta_heading
@@ -109,7 +109,16 @@ class LowBarCentreTower(ObstacleHighGoal):
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
         #super().__init__(2.0, -1.8, 0.0)
-        super().__init__(2.4, -3.8, 0.0)
+        #should be correct for real field
+        super().__init__(0.8, -3.8, 0.0)
+
+class LowBarCentreTowerTest(ObstacleHighGoal):
+    MODE_NAME = "TEST MODE: Low bar, CENTRE tower"
+    def __init__(self):
+        # Barker field: delta_x = 2.4, delta_y = -3.8
+        #super().__init__(2.0, -1.8, 0.0)
+        #should be correct for real field
+        super().__init__(1, -1.0, 0.0)
 
 
 class LowBarLeftTower(ObstacleHighGoal):
