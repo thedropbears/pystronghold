@@ -50,7 +50,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
         self.heading_hold_pid.setOutputRange(-1.0, 1.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
-        self.intake_motor.reverseSensor(True)
+        self.intake_motor.reverseSensor(False)
 
     def putData(self):
         self.sd.putDouble("range_finder", self.range_finder.getDistance())
@@ -93,6 +93,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("defeater_speed", self.defeater_motor.get())
         self.sd.putDouble("joystick_throttle", self.joystick.getThrottle())
         self.sd.putDouble("range_pid_get", self.range_finder.pidGet())
+        self.sd.putDouble("encoder_distance", self.chassis.distance)
 
 
     def disabledInit(self):
@@ -175,7 +176,7 @@ class StrongholdRobot(magicbot.MagicRobot):
             if self.debounce(3):
 
                 self.chassis.track_vision = True
-                self.chassis.range_setpoint = 2.0
+                self.chassis.range_setpoint = self.chassis.correct_range
                 self.chassis.distance_pid.enable()
                 # self.shooter.start_shoot()
         except:

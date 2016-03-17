@@ -18,6 +18,9 @@ class BlankPIDOutput(PIDOutput):
         self.output = output
 
 class Chassis:
+
+    correct_range = 1.4 # m
+
     length = 498.0  # mm
     width = 600.0  # mm
 
@@ -45,20 +48,20 @@ class Chassis:
                                     'drive_encoder':True, 'reverse_drive_encoder':True},
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}
                      }"""
-    module_params = {'a': {'args': {'drive':13, 'steer':14, 'absolute':False,                                     
-                                    'reverse_drive':True, 'reverse_steer':False, 'zero_reading':30,      
+    module_params = {'a': {'args': {'drive':13, 'steer':11, 'absolute':False,                                     
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':30,      
                                     'drive_encoder':True, 'reverse_drive_encoder':True},                 
                            'vz': {'x':-vz_components['x'], 'y': vz_components['y']}},               
                      'b': {'args': {'drive':8, 'steer':9, 'absolute':False,                         
-                                    'reverse_drive':False, 'reverse_steer':False, 'zero_reading':109,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':109,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},             
                            'vz': {'x':-vz_components['x'], 'y':-vz_components['y']}},                
                      'c': {'args': {'drive':2, 'steer':4, 'absolute':False,                          
-                                    'reverse_drive':False, 'reverse_steer':False, 'zero_reading':536,
+                                    'reverse_drive':False, 'reverse_steer':True, 'zero_reading':536,
                                     'drive_encoder':True, 'reverse_drive_encoder':True},             
                            'vz': {'x': vz_components['x'], 'y':-vz_components['y']}},                
                      'd': {'args': {'drive':3, 'steer':6, 'absolute':False,                          
-                                    'reverse_drive':True, 'reverse_steer':False, 'zero_reading':389, 
+                                    'reverse_drive':True, 'reverse_steer':True, 'zero_reading':389, 
                                     'drive_encoder':True, 'reverse_drive_encoder':True},             
                            'vz': {'x': vz_components['x'], 'y': vz_components['y']}}                 
                      }
@@ -127,7 +130,7 @@ class Chassis:
             self.distance_pid.setSetpoint(0.0)
             self.distance_pid.enable()
 
-    def toggle_range_holding(self, setpoint):
+    def toggle_range_holding(self, setpoint=1.4):
         if not self.range_setpoint:
             self.range_setpoint = setpoint
             self.zero_encoders()
@@ -142,11 +145,11 @@ class Chassis:
 
     def field_displace(self, x, y):
         '''Use the distance PID to displace the robot by x,y in field reference frame.'''
-        self.zero_encoders()
-        d = (x ** 2 + y ** 2) ** 0.5
+        d = math.sqrt((x ** 2 + y ** 2))
         fx, fy = field_orient(x, y, self.bno055.getHeading())
-        self.distance_pid_heading = math.atan2(fx, fy)
+        self.distance_pid_heading = math.atan2(fy, fx)
         self.distance_pid.disable()
+        self.zero_encoders()
         self.distance_pid.setSetpoint(d)
         self.distance_pid.enable()
 
@@ -161,7 +164,7 @@ class Chassis:
         distances = 0.0
         for module in self._modules.values():
             distances += abs(module.distance) / module.drive_counts_per_metre
-        return distances / len(self._modules)
+        return distances / 4.0
 
     def drive(self, vX, vY, vZ, absolute=False):
         motor_vectors = {}
@@ -203,12 +206,16 @@ class Chassis:
                 x = y = 0.0
                 if self.range_setpoint:
                     x = self.range_finder.pidGet() - self.range_setpoint
+                    if x > 0.5:
+                        x = 0.5
+                    elif x < -0.5:
+                        x = -0.5
                 if self.track_vision:
-                    y = self.vision.pidGet()*self.range_finder.pidGet()  # TODO we need proper scaling factors here
-                    if y > 0.1:
-                        y = 0.1
-                    elif y < -0.1:
-                        y = -0.1
+                    y = -self.vision.pidGet()*self.range_finder.pidGet()*0.15  # TODO we need proper scaling factors here
+                    if y > 0.3:
+                        y = 0.3
+                    elif y < -0.3:
+                        y = -0.3
                 self.distance_pid.disable()
                 self.zero_encoders()
                 self.distance_pid_heading = math.atan2(y, x)        
@@ -250,6 +257,12 @@ class Chassis:
     def set_heading_setpoint(self, setpoint):
         self.heading_hold_pid.setSetpoint(constrain_angle(setpoint))
 
+    def on_range_target(self):
+        return abs(self.range_finder.getDistance() - self.range_setpoint) < 0.1
+
+    def on_vision_target(self):
+        return abs(self.vision.pidGet()) < 0.05
+
 class SwerveModule():
     def __init__(self, drive, steer,
                  absolute=True, reverse_drive=False,
@@ -280,7 +293,7 @@ class SwerveModule():
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self._steer.setPID(6.0, 0.0, 0.0)  # PID values for rel
             self.counts_per_radian = 497.0 * (40.0 / 48.0) * 4.0 / (2.0 * math.pi)
-            self._offset = 0
+            self._offset = self.counts_per_radian*2.0*math.pi/4.0
             self._steer.setPosition(0.0)
 
         if self.drive_encoder:
@@ -299,9 +312,9 @@ class SwerveModule():
     def changeDriveControlMode(self, control_mode):
         if self._drive.getControlMode is not control_mode:
             if control_mode == CANTalon.ControlMode.Speed:
-                self._drive.setPID(1.0, 0.005, 0.0, 1023.0 / self.drive_max_speed)
+                self._drive.setPID(1.0, 0.00, 0.0, 1023.0 / self.drive_max_speed)
             elif control_mode == CANTalon.ControlMode.Position:
-                self._drive.setPID(0.1, 0.01, 0.0, 0.0)
+                self._drive.setPID(0.1, 0.0, 0.0, 0.0)
             self._drive.changeControlMode(control_mode)
 
     @property
