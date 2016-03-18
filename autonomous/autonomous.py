@@ -7,7 +7,7 @@ from components import bno055
 from wpilib import CANTalon
 import logging
 
-import math
+import math, time
 
 
 class States:
@@ -56,6 +56,7 @@ class ObstacleHighGoal:
         self.vision_counts = 0
         self.timeout = 0
         self.shooting = False
+        self.start_time = time.time()
 
     def on_disable(self):
         """Cleanup after auto routine"""
@@ -93,26 +94,29 @@ class ObstacleHighGoal:
             # Leave the distance PID running as it will read the rf for us
             self.logger.info("Strafing finished, distance: " + str(self.chassis.distance))
             self.state = States.range_finding
+            self.chassis.distance_pid.setSetpoint(0.0)
+            self.chassis.distance_pid.reset()
             self.chassis.range_setpoint = self.chassis.correct_range  # m
         if self.state == States.range_finding and self.chassis.on_range_target(): #self.chassis.distance_pid.onTarget():
             # Range is good, now turn on the vision tracking
             self.chassis.track_vision = True
+            self.chassis.distance_pid.setSetpoint(0.0)
+            self.chassis.distance_pid.reset()
             self.state = States.goal_tracking
-            if self.chassis.vision.no_vision_counter < 10:
-                self.shooter.change_state(shooter.States.shooting)
-                self.shooting = True
-            else:
-                self.shooting = False
-        if self.state == States.goal_tracking and self.chassis.on_vision_target(): #self.chassis.distance_pid.onTarget():
+            self.logger.info("On range, distance: " + str(self.chassis.distance))
+            self.shooter.change_state(shooter.States.shooting)
+            self.shooting = True
+        if (self.state == States.goal_tracking and self.chassis.on_vision_target()) or ((time.time() - self.start_time) > 12): #self.chassis.distance_pid.onTarget():
             # We made it to the target point, so fire away!
+            self.shooter.change_state(shooter.States.shooting)
+            self.intake.state = intake.States.fire
             self.state = States.firing
             self.chassis.range_setpoint = 0.0
             self.chassis.track_vision = False
         if self.state == States.firing and self.shooter.state == shooter.States.shooting:
-            if self.shooting:
-                self.intake.state = intake.States.fire
+            self.shooter.change_state(shooter.States.shooting)
+            self.intake.state = intake.States.fire
             self.chassis.field_oriented = True
-
 
 class LowBarCentreTower(ObstacleHighGoal):
     MODE_NAME = "Low bar, CENTRE tower"
@@ -122,7 +126,7 @@ class LowBarCentreTower(ObstacleHighGoal):
         # Barker field: delta_x = 2.4, delta_y = -3.8
         #super().__init__(2.0, -1.8, 0.0)
         #should be correct for real field
-        super().__init__(0.8, -3.8, 0.0)
+        super().__init__(1.2, -3.8, 0.0)
 
 class LowBarCentreTowerTest(ObstacleHighGoal):
     MODE_NAME = "TEST MODE: Low bar, CENTRE tower"
@@ -130,7 +134,7 @@ class LowBarCentreTowerTest(ObstacleHighGoal):
         # Barker field: delta_x = 2.4, delta_y = -3.8
         #super().__init__(2.0, -1.8, 0.0)
         #should be correct for real field
-        super().__init__(1, -1.0, 0.0)
+        super().__init__(0.8, -0.2, 0.0)
 
 
 class LowBarLeftTower(ObstacleHighGoal):

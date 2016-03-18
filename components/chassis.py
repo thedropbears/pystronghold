@@ -96,7 +96,7 @@ class Chassis:
         self.distance_pid_heading = 0.0  # Relative to field
         self.distance_pid_output = BlankPIDOutput()
         # TODO tune the distance PID values
-        self.distance_pid = PIDController(0.5, 0.007, 0.0, self, self.distance_pid_output)
+        self.distance_pid = PIDController(1.0, 0.02, 0.0, self, self.distance_pid_output)
         self.distance_pid.setPercentTolerance(3.0)
         self.distance_pid.setToleranceBuffer(5)
         self.distance_pid.setContinuous(False)
@@ -316,7 +316,7 @@ class SwerveModule():
     def changeDriveControlMode(self, control_mode):
         if self._drive.getControlMode is not control_mode:
             if control_mode == CANTalon.ControlMode.Speed:
-                self._drive.setPID(1.0, 0.00, 0.0, 1023.0 / self.drive_max_speed)
+                self._drive.setPID(0.0, 0.00, 0.0, 1023.0 / self.drive_max_speed)
             elif control_mode == CANTalon.ControlMode.Position:
                 self._drive.setPID(0.1, 0.0, 0.0, 0.0)
             self._drive.changeControlMode(control_mode)

@@ -40,7 +40,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.heading_hold_pid_output = BlankPIDOutput()
         Tu = 1.6
         Ku = 0.6
-        Kp = Ku * 0.2
+        Kp = Ku * 0.3
         self.heading_hold_pid = wpilib.PIDController(0.38,
                                                      2.0 * Kp / Tu * 0.07,
                                                      1.0 * Kp * Tu / 20.0 * 0,
@@ -109,7 +109,7 @@ class StrongholdRobot(magicbot.MagicRobot):
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
         try:
-            if self.debounce(2):
+            if self.debounce(2) or self.debounce(1, gamepad=True):
                 self.intake.toggle()
         except:
             self.onException()
