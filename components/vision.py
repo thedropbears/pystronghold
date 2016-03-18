@@ -32,6 +32,7 @@ class Vision:
         self._vision_process.daemon = True
         self._vision_process.start()
         self.logger.info("Vision process started: ")
+        self.no_vision_counter = 0
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
 
@@ -56,6 +57,9 @@ class Vision:
         if self._data_array[2] > 0.0 and self._data_array[4] != self._last_time:
             self._smoothed_pidget = alpha * self._data_array[0] + (1.0 - alpha) * self._smoothed_pidget
             self._last_time = self._data_array[4]
+            self.no_vision_counter = 0
+        else:
+            self.no_vision_counter += 1
         return -self._smoothed_pidget
 
 class VisionProcess(multiprocessing.Process):

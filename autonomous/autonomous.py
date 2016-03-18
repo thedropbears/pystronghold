@@ -55,6 +55,7 @@ class ObstacleHighGoal:
         self.chassis.zero_encoders()
         self.vision_counts = 0
         self.timeout = 0
+        self.shooting = False
 
     def on_disable(self):
         """Cleanup after auto routine"""
@@ -97,14 +98,19 @@ class ObstacleHighGoal:
             # Range is good, now turn on the vision tracking
             self.chassis.track_vision = True
             self.state = States.goal_tracking
-            self.shooter.change_state(shooter.States.shooting)
+            if self.chassis.vision.no_vision_counter < 10:
+                self.shooter.change_state(shooter.States.shooting)
+                self.shooting = True
+            else:
+                self.shooting = False
         if self.state == States.goal_tracking and self.chassis.on_vision_target(): #self.chassis.distance_pid.onTarget():
             # We made it to the target point, so fire away!
             self.state = States.firing
             self.chassis.range_setpoint = 0.0
             self.chassis.track_vision = False
         if self.state == States.firing and self.shooter.state == shooter.States.shooting:
-            self.intake.state = intake.States.fire
+            if self.shooting:
+                self.intake.state = intake.States.fire
             self.chassis.field_oriented = True
 
 
