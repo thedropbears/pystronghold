@@ -81,7 +81,7 @@ class Chassis:
         self._modules = {}
         for name, params in Chassis.module_params.items():
             self._modules[name] = SwerveModule(**(params['args']))
-            self._modules[name]._drive.setVoltageRampRate(100.0)
+            self._modules[name]._drive.setVoltageRampRate(50.0)
         self.field_oriented = True
         self.inputs = [0.0, 0.0, 0.0, 0.0]
         self.vx = self.vy = self.vz = 0.0
