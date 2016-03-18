@@ -81,6 +81,7 @@ class Chassis:
         self._modules = {}
         for name, params in Chassis.module_params.items():
             self._modules[name] = SwerveModule(**(params['args']))
+            self._modules[name]._drive.setVoltageRampRate(100.0)
         self.field_oriented = True
         self.inputs = [0.0, 0.0, 0.0, 0.0]
         self.vx = self.vy = self.vz = 0.0
@@ -95,11 +96,11 @@ class Chassis:
         self.distance_pid_heading = 0.0  # Relative to field
         self.distance_pid_output = BlankPIDOutput()
         # TODO tune the distance PID values
-        self.distance_pid = PIDController(1.0, 0.007, 0.0, self, self.distance_pid_output)
+        self.distance_pid = PIDController(0.5, 0.007, 0.0, self, self.distance_pid_output)
         self.distance_pid.setPercentTolerance(3.0)
         self.distance_pid.setToleranceBuffer(5)
         self.distance_pid.setContinuous(False)
-        self.distance_pid.setInputRange(-1.0, 1.0)  # TODO check that this range is good for us
+        self.distance_pid.setInputRange(-10.0, 10.0)  # TODO check that this range is good for us
         self.distance_pid.setOutputRange(-0.4, 0.4)
         self.distance_pid.setSetpoint(0.0)
 
@@ -146,11 +147,13 @@ class Chassis:
     def field_displace(self, x, y):
         '''Use the distance PID to displace the robot by x,y in field reference frame.'''
         d = math.sqrt((x ** 2 + y ** 2))
+        logging.getLogger("chassis").info("XYD: %f %f %f" % (x,y,d))
         fx, fy = field_orient(x, y, self.bno055.getHeading())
         self.distance_pid_heading = math.atan2(fy, fx)
         self.distance_pid.disable()
         self.zero_encoders()
         self.distance_pid.setSetpoint(d)
+        self.distance_pid.reset()
         self.distance_pid.enable()
 
     def pidGet(self):
@@ -162,9 +165,10 @@ class Chassis:
     @property
     def distance(self):
         distances = 0.0
-        for module in self._modules.values():
-            distances += abs(module.distance) / module.drive_counts_per_metre
-        return distances / 4.0
+        distances = (abs(self._modules['c'].distance) + abs(self._modules['d'].distance))
+        #"""for module in self._modules.values():
+        #    distances += abs(module.distance) / module.drive_counts_per_metre"""
+        return distances / 2.0 / self._modules['c'].drive_counts_per_metre
 
     def drive(self, vX, vY, vZ, absolute=False):
         motor_vectors = {}
@@ -211,14 +215,14 @@ class Chassis:
                     elif x < -0.5:
                         x = -0.5
                 if self.track_vision:
-                    y = -self.vision.pidGet()*self.range_finder.pidGet()*0.15  # TODO we need proper scaling factors here
+                    y = self.vision.pidGet()*self.range_finder.pidGet()*0.3  # TODO we need proper scaling factors here
                     if y > 0.3:
                         y = 0.3
                     elif y < -0.3:
                         y = -0.3
                 self.distance_pid.disable()
                 self.zero_encoders()
-                self.distance_pid_heading = math.atan2(y, x)        
+                self.distance_pid_heading = constrain_angle(math.atan2(y, x)+self.bno055.getAngle())
                 self.distance_pid.setSetpoint(math.sqrt(x**2+y**2))
                 self.distance_pid.enable()
 

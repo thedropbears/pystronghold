@@ -126,20 +126,21 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.heading_hold_pid.disable()
                 self.bno055.resetHeading()
                 self.heading_hold_pid.setSetpoint(constrain_angle(self.bno055.getAngle()))
+                self.heading_hold_pid.reset()
                 if enabled:
                     self.heading_hold_pid.enable()
         except:
             self.onException()
 
         try:
-            if self.debounce(11):
+            if self.debounce(10):
                 self.chassis.toggle_vision_tracking()
         except:
             self.onException()
 
         try:
             if self.debounce(12):
-                self.chassis.toggle_range_holding(2.0)  # 2m range
+                self.chassis.toggle_range_holding(self.chassis.correct_range)
         except:
             self.onException()
 
@@ -188,12 +189,12 @@ class StrongholdRobot(magicbot.MagicRobot):
         except:
             self.onException()
 
-        try:
+        """try:
             if self.debounce(10):
                 self.shooter.backdrive()
                 self.intake.backdrive()
         except:
-            self.onException()
+            self.onException()"""
 
         try:
             if self.joystick.getPOV() != -1:
@@ -211,6 +212,14 @@ class StrongholdRobot(magicbot.MagicRobot):
                 elif self.joystick.getPOV() == 180:
                     direction = 0.0
                 self.chassis.set_heading_setpoint(direction)
+        except:
+            self.onException()
+
+        try:
+            if self.joystick.getRawButton(11) or self.gamepad.getRawButton(2):
+                self.chassis.field_oriented = False 
+            else:
+                self.chassis.field_oriented = True
         except:
             self.onException()
 

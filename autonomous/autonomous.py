@@ -5,6 +5,7 @@ from components import intake
 from components import defeater
 from components import bno055
 from wpilib import CANTalon
+import logging
 
 import math
 
@@ -37,12 +38,14 @@ class ObstacleHighGoal:
         # Rescale velocity components to get a combined magnitude of 1
         self.vx = delta_x / self.strafe_distance
         self.vy = delta_y / self.strafe_distance
+        self.logger = logging.getLogger("auto")
 
     def on_enable(self):
         """Set up the autonomous routine"""
         # Reset the IMU
         self.bno055.resetHeading()
         self.chassis.set_heading_setpoint(self.bno055.getAngle())
+        self.chassis.heading_hold_pid.reset()
         self.chassis.heading_hold = True
         self.chassis.field_oriented = True
         self.chassis.drive(1, 0, 0, 0.0001)
@@ -71,9 +74,11 @@ class ObstacleHighGoal:
                 return
             self.chassis.field_displace(self.straight, 0.0)
             self.state = States.through_obstacle
+            self.logger.info("SETPOINT: " + str(self.chassis.distance_pid.getSetpoint()))
         if self.state == States.through_obstacle and self.chassis.distance_pid.onTarget():
             # Let the distance PID do its magic...
             # Turn off the distance PID, and spin to the right angle
+            self.logger.info("Obstacle finished, distance: " + str(self.chassis.distance))
             self.chassis.distance_pid.disable()
             self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
             self.defeater_motor.set(0.3)
@@ -85,6 +90,7 @@ class ObstacleHighGoal:
         if self.state == States.strafing and self.chassis.distance_pid.onTarget():
             # Dead reckoning is done - engage the rangefinder
             # Leave the distance PID running as it will read the rf for us
+            self.logger.info("Strafing finished, distance: " + str(self.chassis.distance))
             self.state = States.range_finding
             self.chassis.range_setpoint = self.chassis.correct_range  # m
         if self.state == States.range_finding and self.chassis.on_range_target(): #self.chassis.distance_pid.onTarget():
