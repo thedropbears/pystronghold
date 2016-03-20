@@ -8,6 +8,7 @@ class States:
     off = 0
     shooting = 1
     backdriving = 2
+    backdrive_recovery = 10
 
 class Shooter:
 #closed-loop controls for shooting mechanism
@@ -35,6 +36,9 @@ class Shooter:
 
     def backdrive(self):
         self.change_state(States.backdriving)
+
+    def backdrive_recovery(self):
+        self.change_state(States.backdrive_recovery)
 
     def toggle(self):
         if self.state == States.off:
@@ -65,10 +69,15 @@ class Shooter:
 
         if self._changed_state:
             if self.state == States.shooting:
-                self._speed = -self.shoot_percentage*Shooter.max_speed
+                self._speed = -self.shoot_percentage
             elif self.state == States.off:
                 self._speed = 0.0
             elif self.state == States.backdriving:
-                self._speed = 0.01*Shooter.max_speed
+                self._speed = 0.01
+            elif self.state == States.backdrive_recovery:
+                self._speed = 1.0
             self._changed_state = False
-            self.shooter_motor.set(self._speed)
+            self.shooter_motor.set(self._speed*Shooter.max_speed)
+            if self.state == States.backdrive_recovery:
+                self.state = States.off
+                self._changed_state = True

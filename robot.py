@@ -26,12 +26,13 @@ class StrongholdRobot(magicbot.MagicRobot):
     def createObjects(self):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
-        self.intake_motor = wpilib.CANTalon(11)
+        self.intake_motor = wpilib.CANTalon(14)
         self.shooter_motor = wpilib.CANTalon(12)
         self.defeater_motor = wpilib.CANTalon(1)
         self.joystick = wpilib.Joystick(0)
         self.gamepad = wpilib.Joystick(1)
-        self.pressed_buttons = set()
+        self.pressed_buttons_js = set()
+        self.pressed_buttons_gp = set()
         # needs to be created here so we can pass it in to the PIDController
         self.bno055 = BNO055()
         self.vision = Vision()
@@ -39,43 +40,37 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.heading_hold_pid_output = BlankPIDOutput()
         Tu = 1.6
         Ku = 0.6
-        Kp = Ku * 0.2
-        self.heading_hold_pid = wpilib.PIDController(0.38,
-                                                     2.0 * Kp / Tu * 0.07,
+        Kp = Ku * 0.3
+        self.heading_hold_pid = wpilib.PIDController(0.6,
+                                                     2.0 * Kp / Tu * 0.1,
                                                      1.0 * Kp * Tu / 20.0 * 0,
                                                      self.bno055, self.heading_hold_pid_output)
-        self.heading_hold_pid.setTolerance(3.0)
+        self.heading_hold_pid.setTolerance(3.0*math.pi/180.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
         self.heading_hold_pid.setOutputRange(-1.0, 1.0)
-        self.vision_pid_output = BlankPIDOutput()
-        self.vision_pid = wpilib.PIDController(0.2, 0.007, 0.4, self.vision, self.vision_pid_output, period=0.067)
-        self.vision_pid.setTolerance(3.0)
-        #self.vision_pid.setToleranceBuffer(5)
-        self.vision_pid.setContinuous(False)
-        self.vision_pid.setInputRange(-1.0, 1.0)
-        self.vision_pid.setOutputRange(-0.4, 0.4)
-        self.vision_pid.setSetpoint(0.0)
-        self.range_pid_output = BlankPIDOutput()
-        self.range_pid = wpilib.PIDController(0.25, 0.001, 0.0, self.range_finder, self.range_pid_output)
-        self.range_pid.setTolerance(3.0)
-        self.range_pid.setContinuous(False)
-        self.range_pid.setInputRange(0.0, 5.0)  # approximately 5m to courtyard edge of defences
-        self.range_pid.setOutputRange(-0.4, 0.4)
-        self.range_pid.setSetpoint(2.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
-        self.intake_motor.reverseSensor(True)
+        self.intake_motor.reverseSensor(False)
 
     def putData(self):
         self.sd.putDouble("range_finder", self.range_finder.getDistance())
         self.sd.putDouble("gyro", self.bno055.getHeading())
         vision_array = self.vision.get()
         vision_x = None
+        vision_w = None
+        vision_h = None
         if not vision_array:
             vision_x = -2
+            vision_w = -2
+            vision_h = -2
         else:
             vision_x = vision_array[0]
+            vision_w = vision_array[2]
+            vision_h = vision_array[3]
+        self.sd.putDouble("vision_pid_get", self.vision.pidGet())
         self.sd.putDouble("vision_x", vision_x)
+        self.sd.putDouble("vision_w", vision_w)
+        self.sd.putDouble("vision_h", vision_h)
         self.sd.putDouble("vx", self.chassis.vx)
         self.sd.putDouble("vy", self.chassis.vy)
         self.sd.putDouble("vz", self.chassis.vz)
@@ -84,20 +79,21 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("raw_yaw", self.bno055.getRawHeading())
         self.sd.putDouble("raw_pitch", self.bno055.getPitch())
         self.sd.putDouble("raw_roll", self.bno055.getRoll())
-        self.sd.putDouble("shooter_speed", self.shooter._speed)
+        self.sd.putDouble("shooter_speed", -self.shooter._speed) # minus sign here so +ve is shooting
         self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
         self.sd.putDouble("heading_hold_pid_setpoint", self.heading_hold_pid.getSetpoint())
         self.sd.putDouble("intake_state", self.intake.state)
-        self.sd.putDouble("vision_pid_output", self.chassis.vision_pid_output.output)
+        self.sd.putDouble("intake_speed", self.intake._speed)
+        self.sd.putDouble("distance_pid_output", self.chassis.distance_pid_output.output)
         self.sd.putBoolean("track_vision", self.chassis.track_vision)
         self.sd.putDouble("pov", self.joystick.getPOV())
         self.sd.putDouble("gyro_z_rate", self.bno055.getHeadingRate())
         self.sd.putDouble("heading_hold_error", self.heading_hold_pid.getSetpoint()-self.bno055.getAngle())
-        self.sd.putDouble("range_error", self.range_pid.getSetpoint()-self.range_finder.pidGet())
         self.sd.putDouble("defeater_current", self.defeater_motor.getOutputCurrent())
         self.sd.putDouble("defeater_speed", self.defeater_motor.get())
         self.sd.putDouble("joystick_throttle", self.joystick.getThrottle())
         self.sd.putDouble("range_pid_get", self.range_finder.pidGet())
+        self.sd.putDouble("encoder_distance", self.chassis.distance)
 
 
     def disabledInit(self):
@@ -113,7 +109,7 @@ class StrongholdRobot(magicbot.MagicRobot):
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
         try:
-            if self.debounce(2):
+            if self.debounce(2) or self.debounce(1, gamepad=True):
                 self.intake.toggle()
         except:
             self.onException()
@@ -130,20 +126,21 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.heading_hold_pid.disable()
                 self.bno055.resetHeading()
                 self.heading_hold_pid.setSetpoint(constrain_angle(self.bno055.getAngle()))
+                self.heading_hold_pid.reset()
                 if enabled:
                     self.heading_hold_pid.enable()
         except:
             self.onException()
 
         try:
-            if self.debounce(11):
+            if self.debounce(10):
                 self.chassis.toggle_vision_tracking()
         except:
             self.onException()
 
         try:
             if self.debounce(12):
-                self.chassis.toggle_range_holding(2.0)  # 2m range
+                self.chassis.toggle_range_holding(self.chassis.correct_range)
         except:
             self.onException()
 
@@ -178,10 +175,10 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(3):
-                self.vision_pid.reset()
-                self.range_pid.reset()
+
                 self.chassis.track_vision = True
-                self.chassis.range_setpoint = 2.0
+                self.chassis.range_setpoint = self.chassis.correct_range
+                self.chassis.distance_pid.enable()
                 # self.shooter.start_shoot()
         except:
             self.onException()
@@ -192,12 +189,12 @@ class StrongholdRobot(magicbot.MagicRobot):
         except:
             self.onException()
 
-        try:
+        """try:
             if self.debounce(10):
                 self.shooter.backdrive()
                 self.intake.backdrive()
         except:
-            self.onException()
+            self.onException()"""
 
         try:
             if self.joystick.getPOV() != -1:
@@ -217,14 +214,44 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.chassis.set_heading_setpoint(direction)
         except:
             self.onException()
+
+        try:
+            if self.joystick.getRawButton(11) or self.gamepad.getRawButton(2):
+                self.chassis.field_oriented = False 
+            else:
+                self.chassis.field_oriented = True
+        except:
+            self.onException()
+
+        try:
+            if self.gamepad.getRawButton(3):
+                self.intake.backdrive_slow()
+        except:
+            self.onException()
+
+        try:
+            if self.debounce(1, gamepad=True):
+                self.chassis.zero_encoders()
+                self.chassis.distance_pid.setSetpoint(1.2)
+                self.chassis.distance_pid.enable()
+        except:
+            self.onException()
+
+        try:
+            if self.gamepad.getRawButton(4):
+                self.shooter.backdrive_recovery()
+        except:
+            self.onException()
+
         self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05, exponential=1.2),
                             - rescale_js(self.joystick.getX(), deadzone=0.05, exponential=1.2),
-                            - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=5.0, rate=0.6),
+                            - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=15.0, rate=0.3),
                             (self.joystick.getThrottle() - 1.0) / -2.0
                             ]
         for input in self.chassis.inputs[0:3]:
             if input != 0.0:
                 # Break out of auto if we move the stick
+                self.chassis.distance_pid.disable()
                 self.chassis.range_setpoint = None
                 self.chassis.track_vision = False
                 self.chassis.field_oriented = True
@@ -235,15 +262,22 @@ class StrongholdRobot(magicbot.MagicRobot):
         """This function is called periodically during test mode."""
         wpilib.LiveWindow.run()
 
-    def debounce(self, button):
-        if self.joystick.getRawButton(button):
-            if button in self.pressed_buttons:
+    def debounce(self, button, gamepad = False):
+        device = None
+        if gamepad:
+            pressed_buttons = self.pressed_buttons_gp
+            device = self.gamepad
+        else:
+            pressed_buttons = self.pressed_buttons_js
+            device = self.joystick
+        if device.getRawButton(button):
+            if button in pressed_buttons:
                 return False
             else:
-                self.pressed_buttons.add(button)
+                pressed_buttons.add(button)
                 return True
         else:
-            self.pressed_buttons.discard(button)
+            pressed_buttons.discard(button)
             return False
 
 def rescale_js(value, deadzone=0.0, exponential=0.0, rate=1.0):

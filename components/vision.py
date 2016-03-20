@@ -32,6 +32,7 @@ class Vision:
         self._vision_process.daemon = True
         self._vision_process.start()
         self.logger.info("Vision process started: ")
+        self.no_vision_counter = 0
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
 
@@ -51,11 +52,14 @@ class Vision:
         return PIDSource.PIDSourceType.kDisplacement
 
     def pidGet(self):
-        alpha = 0.5
+        alpha = 0.3
         # update the smoothed value
         if self._data_array[2] > 0.0 and self._data_array[4] != self._last_time:
             self._smoothed_pidget = alpha * self._data_array[0] + (1.0 - alpha) * self._smoothed_pidget
             self._last_time = self._data_array[4]
+            self.no_vision_counter = 0
+        else:
+            self.no_vision_counter += 1
         return -self._smoothed_pidget
 
 class VisionProcess(multiprocessing.Process):
@@ -111,6 +115,9 @@ class VisionProcess(multiprocessing.Process):
 
         # get the area of the contour
         area = cv2.contourArea(cnt)
+        if area /Vision.video_width/Vision.video_height > 0.05:
+            result_image = image
+            return 0.0, 0.0, 0.0, 0.0, result_image
         # get the perimeter of the contour
         perimeter = cv2.arcLength(cnt, True)
         # get a rectangle and then a box around the largest countour

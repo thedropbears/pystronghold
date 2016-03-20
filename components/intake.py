@@ -1,4 +1,5 @@
 
+from networktables import NetworkTable
 from wpilib import CANTalon, PowerDistributionPanel
 
 from components import shooter
@@ -11,6 +12,7 @@ from _collections import deque
 class States:
     no_ball = 0
     backdriving = 11
+    backdriving_slow = 12
     up_to_speed = 10
     intaking_free = 1
     intaking_contact = 2
@@ -33,6 +35,8 @@ class Intake:
         self.intake_time = 0.0
         self.previous_velocity = 0.0
         self.shoot_time = None
+        self.sd = NetworkTable.getTable('SmartDashboard')
+        self.contact_time = time.time()
 
     def stop(self):
         self.state = States.no_ball
@@ -46,6 +50,9 @@ class Intake:
 
     def backdrive(self):
         self.state = States.backdriving
+
+    def backdrive_slow(self):
+        self.state = States.backdriving_slow
 
     def fire(self):
         self.state = States.fire
@@ -70,9 +77,15 @@ class Intake:
         self.current_deque.append(self.intake_motor.getOutputCurrent())
         current_avg = sum(self.current_deque) / maxlen
         current_rate = current_avg - prev_current_avg#self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
-
         velocity = self.intake_motor.get()
         acceleration = velocity - self.previous_velocity
+
+        self.sd.putDouble("intake_current_rate", current_rate)
+        self.sd.putDouble("intake_current_avg", current_avg)
+        self.sd.putDouble("intake_closed_loop_error", self.intake_motor.getClosedLoopError())
+        self.sd.putDouble("intake_acceleration", acceleration)
+        self.sd.putDouble("intake_velocity", velocity)
+
 
         if self.state != States.no_ball and self.state != States.pinned:
             self.log_queue.append(self.current_deque[maxlen-1])
@@ -89,17 +102,18 @@ class Intake:
             self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)
             self.intake_motor.setPID(0.0, 0.0, 0.0, 1023.0/Intake.max_speed)
             self.shooter.change_state(shooter.States.off)
-            if self._speed == 1.0 and self.intake_motor.getClosedLoopError() < Intake.max_speed*0.05:
+            if self._speed == 0.7 and self.intake_motor.getClosedLoopError() < Intake.max_speed*0.05:
                 self.state = States.up_to_speed
-            self._speed = 1.0
+            self._speed = 0.7
 
         if self.state == States.up_to_speed:
-            if self.intake_motor.getClosedLoopError() > Intake.max_speed*0.01 and acceleration < 0.0:
+            if self.intake_motor.getClosedLoopError() > Intake.max_speed*0.1 and acceleration < 0.0 and current_rate > 0.0:
+                self.contact_time = time.time()
                 self.state = States.intaking_contact
 
         if self.state == States.intaking_contact:
             self.shooter.change_state(shooter.States.backdriving)
-            if acceleration > 0.0:#self.intake_motor.getClosedLoopError() < Intake.max_speed*0.1:
+            if time.time() - self.contact_time > 0.3:#acceleration > 0.0:#self.intake_motor.getClosedLoopError() < Intake.max_speed*0.1:
                 self.state = States.pinning
 
         if self.state == States.pinning:
@@ -117,6 +131,10 @@ class Intake:
             self._speed = 0.0
             if self.log_queue:
                 self.log_current()
+
+        if self.state == States.backdriving_slow:
+            self._speed = -0.5
+            self.state = States.no_ball
 
         if self.state == States.fire:
             self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)
