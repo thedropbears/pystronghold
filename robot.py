@@ -41,11 +41,11 @@ class StrongholdRobot(magicbot.MagicRobot):
         Tu = 1.6
         Ku = 0.6
         Kp = Ku * 0.3
-        self.heading_hold_pid = wpilib.PIDController(0.38,
-                                                     2.0 * Kp / Tu * 0.07,
+        self.heading_hold_pid = wpilib.PIDController(0.6,
+                                                     2.0 * Kp / Tu * 0.1,
                                                      1.0 * Kp * Tu / 20.0 * 0,
                                                      self.bno055, self.heading_hold_pid_output)
-        self.heading_hold_pid.setTolerance(3.0)
+        self.heading_hold_pid.setTolerance(3.0*math.pi/180.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
         self.heading_hold_pid.setOutputRange(-1.0, 1.0)
@@ -245,7 +245,7 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05, exponential=1.2),
                             - rescale_js(self.joystick.getX(), deadzone=0.05, exponential=1.2),
-                            - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=5.0, rate=0.6),
+                            - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=15.0, rate=0.3),
                             (self.joystick.getThrottle() - 1.0) / -2.0
                             ]
         for input in self.chassis.inputs[0:3]:
