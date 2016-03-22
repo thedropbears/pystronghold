@@ -45,7 +45,7 @@ class StrongholdRobot(magicbot.MagicRobot):
                                                      2.0 * Kp / Tu * 0.1,
                                                      1.0 * Kp * Tu / 20.0 * 0,
                                                      self.bno055, self.heading_hold_pid_output)
-        self.heading_hold_pid.setTolerance(3.0*math.pi/180.0)
+        self.heading_hold_pid.setAbsoluteTolerance(3.0*math.pi/180.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
         self.heading_hold_pid.setOutputRange(-1.0, 1.0)
