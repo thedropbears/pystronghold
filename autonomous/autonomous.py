@@ -55,7 +55,6 @@ class ObstacleHighGoal:
         self.chassis.zero_encoders()
         self.vision_counts = 0
         self.timeout = 0
-        self.shooting = False
         self.start_time = time.time()
 
     def on_disable(self):
@@ -97,6 +96,7 @@ class ObstacleHighGoal:
             self.chassis.distance_pid.setSetpoint(0.0)
             self.chassis.distance_pid.reset()
             self.chassis.range_setpoint = self.chassis.correct_range  # m
+            self.chassis.distance_pid.enable()
         if self.state == States.range_finding and self.chassis.on_range_target(): #self.chassis.distance_pid.onTarget():
             # Range is good, now turn on the vision tracking
             self.chassis.track_vision = True
@@ -105,7 +105,7 @@ class ObstacleHighGoal:
             self.state = States.goal_tracking
             self.logger.info("On range, distance: " + str(self.chassis.distance))
             self.shooter.change_state(shooter.States.shooting)
-            self.shooting = True
+            self.chassis.distance_pid.enable()
         if (self.state == States.goal_tracking and self.chassis.on_vision_target()) or ((time.time() - self.start_time) > 12): #self.chassis.distance_pid.onTarget():
             # We made it to the target point, so fire away!
             self.shooter.change_state(shooter.States.shooting)
