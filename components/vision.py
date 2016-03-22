@@ -24,8 +24,9 @@ class Vision:
     def __init__(self):
         self._data_array = multiprocessing.sharedctypes.RawArray("d", [0.0, 0.0, 0.0, 0.0, 0.0])
         self._process_run_event = multiprocessing.Event()
+        self.write_flag = multiprocessing.sharedctypes.RawValue("i", 0)
         self.logger = logging.getLogger("vision")
-        self._vision_process = VisionProcess(self._data_array, self._process_run_event)
+        self._vision_process = VisionProcess(self._data_array, self._process_run_event, self.write_flag)
         self._process_run_event.set()
         self._smoothed_pidget = 0.0
         self._last_time = 0.0
@@ -48,6 +49,10 @@ class Vision:
         else:
             return None
 
+    def write_image(self):
+        """Write the current image from the vision camera to the disk"""
+        self.write_flag.value = 1
+
     def getPIDSourceType(self):
         return PIDSource.PIDSourceType.kDisplacement
 
@@ -63,10 +68,11 @@ class Vision:
         return -self._smoothed_pidget
 
 class VisionProcess(multiprocessing.Process):
-    def __init__(self, data_array, run_event):
-        super().__init__(args=(data_array, run_event))
+    def __init__(self, data_array, run_event, write_flag):
+        super().__init__(args=(data_array, run_event, write_flag))
         self.vision_data_array = data_array
         self._run_event = run_event
+        self.write_flag = write_flag
         self.logger = logging.getLogger("vision-process")
         if hal.HALIsSimulation():
             self.cap = VideoCaptureSim()
@@ -85,8 +91,12 @@ class VisionProcess(multiprocessing.Process):
                 if success:
                     x, y, w, h, image = self.findTarget(image)
                     self.vision_data_array[:] = [x, y, w, h, tm]
+                    if self.write_flag.value == 1:
+                        filename = str(int(time.time()))+"-goal.png"
+                        cv2.imwrite(filename, image)
                 else:
                     self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, tm]
+                self.write_flag.value = 0
 
     def findTarget(self, image, drawbox=False):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.

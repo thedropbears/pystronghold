@@ -238,6 +238,12 @@ class StrongholdRobot(magicbot.MagicRobot):
             self.onException()
 
         try:
+            if self.debounce(10, gamepad=True):
+                self.vision.write_image()
+        except:
+            self.onException()
+
+        try:
             if self.gamepad.getRawButton(4):
                 self.shooter.backdrive_recovery()
         except:
