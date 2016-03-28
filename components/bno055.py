@@ -28,16 +28,19 @@ class BNO055(GyroBase):
         self.i2c = I2C(port, self.address, sim_port)
 
         # set the units that we want
-        current_units = self.i2c.read(self.BNO055_UNIT_SEL_ADDR, 1)[0]
-        for unit_list in self.BNO055_UNIT_SEL_LIST:
-            if unit_list[0] == 1:
-                current_units = current_units | (1 << unit_list[1])
-            elif unit_list[0] == 0:
-                current_units = current_units & ~(1 << unit_list[1])
-        self.i2c.write(self.BNO055_UNIT_SEL_ADDR, current_units)
-        self.setOperationMode(self.OPERATION_MODE_IMUPLUS)  # accelerometer and gyro
         self.offset = 0.0
-        self.reverse_axis(False, False, False)
+        try:
+            current_units = self.i2c.read(self.BNO055_UNIT_SEL_ADDR, 1)[0]
+            for unit_list in self.BNO055_UNIT_SEL_LIST:
+                if unit_list[0] == 1:
+                    current_units = current_units | (1 << unit_list[1])
+                elif unit_list[0] == 0:
+                    current_units = current_units & ~(1 << unit_list[1])
+            self.i2c.write(self.BNO055_UNIT_SEL_ADDR, current_units)
+            self.setOperationMode(self.OPERATION_MODE_IMUPLUS)  # accelerometer and gyro
+            self.reverse_axis(False, False, False)
+        except:
+            pass
 
     def reverse_axis(self, x, y, z):
         """Reverse the axis directions, xyz are booleans"""
@@ -54,11 +57,17 @@ class BNO055(GyroBase):
             current_directions = current_directions | (1 << 0)
         else:
             current_directions = current_directions & ~ (1 << 0)
-        self.i2c.write(self.BNO055_AXIS_MAP_SIGN_ADDR, current_directions)
+        try:
+            self.i2c.write(self.BNO055_AXIS_MAP_SIGN_ADDR, current_directions)
+        except:
+            pass
 
     def setOperationMode(self, mode):
         if 0X00 <= mode <= 0X0C:  # ensure the operation mode is in the valid range
-            self.i2c.write(self.BNO055_OPR_MODE_ADDR, mode)
+            try:
+                self.i2c.write(self.BNO055_OPR_MODE_ADDR, mode)
+            except:
+                pass
 
     def getAngle(self):
         """Function called by the GyroBase's PID Source to get the
@@ -83,7 +92,10 @@ class BNO055(GyroBase):
         return self.getEuler(self.BNO055_EULER_R_LSB_ADDR)
 
     def getEuler(self, start_register):
-        euler_bytes = self.i2c.read(start_register, 2)
+        try:
+            euler_bytes = self.i2c.read(start_register, 2)
+        except:
+            return 0.0-math.pi
         euler_unsigned = euler_bytes[1] << 8 | euler_bytes[0]
         if euler_unsigned > 32767:
             euler_unsigned -= 65536
