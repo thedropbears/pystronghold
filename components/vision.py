@@ -79,6 +79,7 @@ class VisionProcess(multiprocessing.Process):
         else:
             self.cap = setup_capture(-1)
         self.logger.info(self.cap)
+        self.logger.info("Write Flag: " + str(self.write_flag.value))
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
 
@@ -94,9 +95,9 @@ class VisionProcess(multiprocessing.Process):
                     if self.write_flag.value == 1:
                         filename = str(int(time.time()))+"-goal.png"
                         cv2.imwrite(filename, image)
+                        self.write_flag.value = 0
                 else:
                     self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, tm]
-                self.write_flag.value = 0
 
     def findTarget(self, image, drawbox=False):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
