@@ -38,6 +38,11 @@ class Intake:
         self.sd = NetworkTable.getTable('SmartDashboard')
         self.contact_time = time.time()
 
+    def shooting(self):
+        if self.state == States.fire:
+            return True
+        return False
+
     def stop(self):
         self.state = States.no_ball
 

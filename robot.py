@@ -51,6 +51,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.heading_hold_pid.setOutputRange(-1.0, 1.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
         self.intake_motor.reverseSensor(False)
+        self.joystick_rate = 0.3
 
     def putData(self):
         self.sd.putDouble("range_finder", self.range_finder.getDistance())
@@ -94,6 +95,11 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("joystick_throttle", self.joystick.getThrottle())
         self.sd.putDouble("range_pid_get", self.range_finder.pidGet())
         self.sd.putDouble("encoder_distance", self.chassis.distance)
+        distances = []
+        for module in self.chassis._modules.values():
+            distances.append(abs(module.distance) / module.drive_counts_per_metre)
+        for key, distance in zip(self.chassis._modules.keys(), distances):
+            self.sd.putDouble("encoder"+key, distance)
 
 
     def disabledInit(self):
@@ -108,6 +114,16 @@ class StrongholdRobot(magicbot.MagicRobot):
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""
+
+        try:
+            if self.debounce(6, gamepad=True):
+                if self.shooter.state == shooter.States.off:
+                    self.shooter.start_shoot()
+                else:
+                    self.shooter.toggle()
+        except:
+            self.onException()
+        
         try:
             if self.debounce(2) or self.debounce(1, gamepad=True):
                 self.intake.toggle()
@@ -132,21 +148,21 @@ class StrongholdRobot(magicbot.MagicRobot):
         except:
             self.onException()
 
-        try:
+        """try:
             if self.debounce(10):
                 self.chassis.toggle_vision_tracking()
         except:
-            self.onException()
+            self.onException()"""
 
         try:
-            if self.debounce(12):
+            if self.debounce(10):
                 self.chassis.toggle_range_holding(self.chassis.correct_range)
         except:
             self.onException()
 
         try:
-            if self.debounce(1):
-                if self.shooter.state == shooter.States.off:
+            if self.debounce(1) or self.debounce(8, gamepad=True):
+                if self.shooter.state == shooter.States.off or (self.shooter.state == shooter.States.shooting and not self.intake.shooting()):
                     self.shooter.start_shoot()
                 else:
                     self.shooter.toggle()
@@ -229,13 +245,13 @@ class StrongholdRobot(magicbot.MagicRobot):
         except:
             self.onException()
 
-        try:
+        """try:
             if self.debounce(1, gamepad=True):
                 self.chassis.zero_encoders()
                 self.chassis.distance_pid.setSetpoint(1.2)
                 self.chassis.distance_pid.enable()
         except:
-            self.onException()
+            self.onException()"""
 
         try:
             if self.debounce(10, gamepad=True):
@@ -248,10 +264,18 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.shooter.backdrive_recovery()
         except:
             self.onException()
+        
+        try:
+            if self.joystick.getRawButton(12):
+                self.joystick_rate = 0.6
+            else:
+                self.joystick_rate = 0.3
+        except:
+            self.onException()
 
         self.chassis.inputs = [-rescale_js(self.joystick.getY(), deadzone=0.05, exponential=1.2),
                             - rescale_js(self.joystick.getX(), deadzone=0.05, exponential=1.2),
-                            - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=15.0, rate=0.3),
+                            - rescale_js(self.joystick.getZ(), deadzone=0.2, exponential=15.0, rate=self.joystick_rate),
                             (self.joystick.getThrottle() - 1.0) / -2.0
                             ]
         for input in self.chassis.inputs[0:3]:

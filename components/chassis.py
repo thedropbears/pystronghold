@@ -165,10 +165,10 @@ class Chassis:
     @property
     def distance(self):
         distances = 0.0
-        distances = (abs(self._modules['c'].distance) + abs(self._modules['d'].distance))
-        #"""for module in self._modules.values():
-        #    distances += abs(module.distance) / module.drive_counts_per_metre"""
-        return distances / 2.0 / self._modules['c'].drive_counts_per_metre
+        #distances = (abs(self._modules['c'].distance) + abs(self._modules['d'].distance))
+        for module in self._modules.values():
+            distances += abs(module.distance) / module.drive_counts_per_metre
+        return distances / 4.0# 2.0 / self._modules['c'].drive_counts_per_metre
 
     def drive(self, vX, vY, vZ, absolute=False):
         motor_vectors = {}
@@ -316,7 +316,7 @@ class SwerveModule():
     def changeDriveControlMode(self, control_mode):
         if self._drive.getControlMode is not control_mode:
             if control_mode == CANTalon.ControlMode.Speed:
-                self._drive.setPID(0.0, 0.00, 0.0, 1023.0 / self.drive_max_speed)
+                self._drive.setPID(1.0, 0.00, 0.0, 1023.0 / self.drive_max_speed)
             elif control_mode == CANTalon.ControlMode.Position:
                 self._drive.setPID(0.1, 0.0, 0.0, 0.0)
             self._drive.changeControlMode(control_mode)

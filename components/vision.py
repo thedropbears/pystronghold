@@ -51,6 +51,7 @@ class Vision:
 
     def write_image(self):
         """Write the current image from the vision camera to the disk"""
+        self.logger.info("Capturing image, ouside vision process")
         self.write_flag.value = 1
 
     def getPIDSourceType(self):
@@ -89,13 +90,13 @@ class VisionProcess(multiprocessing.Process):
             while self._run_event.is_set():
                 tm = time.time()
                 success, image = self.cap.read()
+                if self.write_flag.value == 1:
+                    filename = "/home/lvuser/log/" + str(int(time.time()))+"-goal.png"
+                    cv2.imwrite(filename, image)
+                    self.write_flag.value = 0
                 if success:
                     x, y, w, h, image = self.findTarget(image)
                     self.vision_data_array[:] = [x, y, w, h, tm]
-                    if self.write_flag.value == 1:
-                        filename = str(int(time.time()))+"-goal.png"
-                        cv2.imwrite(filename, image)
-                        self.write_flag.value = 0
                 else:
                     self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, tm]
 
