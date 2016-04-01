@@ -103,6 +103,7 @@ class Chassis:
         self.distance_pid.setInputRange(-10.0, 10.0)  # TODO check that this range is good for us
         self.distance_pid.setOutputRange(-0.4, 0.4)
         self.distance_pid.setSetpoint(0.0)
+        self.reset_distance_pid = False
 
     def on_enable(self):
         self.bno055.resetHeading()
@@ -205,17 +206,20 @@ class Chassis:
 
         # Are we in setpoint displacement mode?
         if self.distance_pid.isEnable():
-            if self.distance_pid.onTarget():
+            if self.distance_pid.onTarget():# or self.reset_distance_pid:
+                self.reset_distance_pid = False
+                logging.getLogger("chassis").info("Resetting distance, current rf: " + str(self.range_finder.pidGet()))
                 # Let's see if we need to move further
                 x = y = 0.0
                 if self.range_setpoint:
+                    logging.getLogger("chassis").info("RANGE SETPOINT: " + str(self.range_setpoint))
                     x = self.range_finder.pidGet() - self.range_setpoint
                     if x > 0.5:
                         x = 0.5
                     elif x < -0.5:
                         x = -0.5
                 if self.track_vision:
-                    y = self.vision.pidGet()*self.range_finder.pidGet()*0.3  # TODO we need proper scaling factors here
+                    y = self.vision.pidGet()*0.3#*self.range_finder.pidGet()*0.3  # TODO we need proper scaling factors here
                     if y > 0.3:
                         y = 0.3
                     elif y < -0.3:
@@ -224,11 +228,15 @@ class Chassis:
                 self.zero_encoders()
                 self.distance_pid_heading = constrain_angle(math.atan2(y, x)+self.bno055.getAngle())
                 self.distance_pid.setSetpoint(math.sqrt(x**2+y**2))
+                self.distance_pid.reset()
                 self.distance_pid.enable()
+                logging.getLogger("chassis").info("DIST PID ON TARGET: " + str(self.distance_pid.onTarget()))
 
             # Keep driving
             self.vx = math.cos(self.distance_pid_heading) * self.distance_pid_output.output
             self.vy = math.sin(self.distance_pid_heading) * self.distance_pid_output.output
+            logging.getLogger("chassis").info("DIST PID OUPTUT: " + str(self.distance_pid_output.output) + " VX: " + str(self.vx) + " VY: " + str(self.vy))
+            #logging.getLogger("chassis").info("DIST HEADING: " + str(self.distance_pid_heading) + " DIST RANGE: " + str(self.distance_pid.getSetpoint()))
         else:
             self.vx = self.inputs[0] * self.inputs[3]  # multiply by throttle
             self.vy = self.inputs[1] * self.inputs[3]  # multiply by throttle

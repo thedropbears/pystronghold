@@ -18,7 +18,7 @@ class Vision:
     video_contrast = 0.5
     video_brightness = 0.5
     video_saturation = 0.5
-    video_exposure = 5  # min 3 max 2047
+    video_exposure = 2  # min 3 max 2047
     video_white_balance = 4000  # min 2000 max 6500
     video_gain = 0.0
     def __init__(self):
@@ -83,29 +83,31 @@ class VisionProcess(multiprocessing.Process):
         self.logger.info("Write Flag: " + str(self.write_flag.value))
         # Register with Resource so teardown works
         Resource._add_global_resource(self)
+        self.start_time = time.time()
 
     def run(self):
         self.logger.info("Process started")
         with suppress_stdout_stderr():
             while self._run_event.is_set():
                 tm = time.time()
-                success, image = self.cap.read()
-                if self.write_flag.value == 1:
-                    filename = "/home/lvuser/log/" + str(int(time.time()))+"-goal.png"
-                    cv2.imwrite(filename, image)
-                    self.write_flag.value = 0
-                if success:
-                    x, y, w, h, image = self.findTarget(image)
-                    self.vision_data_array[:] = [x, y, w, h, tm]
-                else:
-                    self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, tm]
+                if tm - self.start_time > 15:
+                    success, image = self.cap.read()
+                    if self.write_flag.value == 1:
+                        filename = "/home/lvuser/log/" + str(int(time.time()))+"-goal.png"
+                        cv2.imwrite(filename, image)
+                        self.write_flag.value = 0
+                    if success:
+                        x, y, w, h, image = self.findTarget(image)
+                        self.vision_data_array[:] = [x, y, w, h, tm]
+                    else:
+                        self.vision_data_array[:] = [0.0, 0.0, 0.0, 0.0, tm]
 
     def findTarget(self, image, drawbox=False):
         # Convert from BGR colourspace to HSV. Makes thresholding easier.
         hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # #Define the colours to look for (in HSV)
-        lower_colour = np.array([40, 200, 20])
-        upper_colour = np.array([110, 255, 150])
+        lower_colour = np.array([40, 180, 20])
+        upper_colour = np.array([110, 255, 160])
         # Create a mask that filters out only those colours
         mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
         # Errode and dialate the image to get rid of noise
@@ -157,16 +159,17 @@ class VisionProcess(multiprocessing.Process):
         return x, y, w, h, result_image
 
 def setup_capture(device_idx=-1):
-    cap = cv2.VideoCapture(device_idx)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
     device_string = str(device_idx)
     if device_idx < 0:
         device_string = str(0)
     v4l2_str = "v4l2-ctl -d /dev/video" + device_string + " -c exposure_auto=1 -c exposure_auto_priority=0 -c exposure_absolute=" \
             + str(Vision.video_exposure) + " -c white_balance_temperature_auto=0 -c white_balance_temperature=" + str(Vision.video_white_balance)
     print(v4l2_str)
-    os.system(v4l2_str)
+    cap = cv2.VideoCapture(device_idx)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Vision.video_height)
+    #os.system(v4l2_str)
+    #os.system("/etc/init.d/v4l-script.sh")
     # On the Logitech C920 the following options cannot be set:
     # CAP_PROP_EXPOSURE
     # CAP_PROP_HUE

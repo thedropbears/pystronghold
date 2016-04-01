@@ -99,7 +99,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         for module in self.chassis._modules.values():
             distances.append(abs(module.distance) / module.drive_counts_per_metre)
         for key, distance in zip(self.chassis._modules.keys(), distances):
-            self.sd.putDouble("encoder"+key, distance)
+            self.sd.putDouble("encoder_motor_"+key, distance)
 
 
     def disabledInit(self):
@@ -269,7 +269,7 @@ class StrongholdRobot(magicbot.MagicRobot):
             if self.joystick.getRawButton(12):
                 self.joystick_rate = 0.6
             else:
-                self.joystick_rate = 0.3
+                self.joystick_rate = 0.4
         except:
             self.onException()
 
@@ -284,7 +284,7 @@ class StrongholdRobot(magicbot.MagicRobot):
                 self.chassis.distance_pid.disable()
                 self.chassis.range_setpoint = None
                 self.chassis.track_vision = False
-                self.chassis.field_oriented = True
+                #self.chassis.field_oriented = True
         self.putData()
 
 
