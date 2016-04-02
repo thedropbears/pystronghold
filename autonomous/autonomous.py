@@ -29,7 +29,7 @@ class ObstacleHighGoal:
     bno055 = bno055.BNO055
 
     def __init__(self, delta_x, delta_y, delta_heading=0.0, portcullis=False):
-        self.straight = 4.5
+        self.straight = 4.6
         self.delta_x = delta_x
         self.delta_y = delta_y
         self.delta_heading = delta_heading
@@ -63,12 +63,14 @@ class ObstacleHighGoal:
         self.chassis.track_vision = False
         self.shooter.change_state(shooter.States.off)
         self.intake.state = intake.States.no_ball
+        self.chassis.vision.write_flag.value = 1
 
     def on_iteration(self, tm):
         '''Drive forward the same amount, then move by delta_x and delta_y
         to the position where the vision and range finder take over.
         Final change in heading is specified too.'''
         rf = self.chassis.range_finder.pidGet()
+        self.logger.info("VISION OUTPUT: " + str(self.chassis.vision.pidGet()) + " COUNTER: " + str(self.chassis.vision.no_vision_counter))
         if self.state == States.init:
             if self.portcullis:
                 self.defeater_motor.set(-0.5)
@@ -96,7 +98,6 @@ class ObstacleHighGoal:
             self.state = States.range_finding
             self.chassis.distance_pid.reset()
             self.chassis.zero_encoders()
-            self.chassis.distance_pid.setSetpoint(0.0)
             self.chassis.range_setpoint = self.chassis.correct_range  # m
             self.chassis.distance_pid.reset()
             self.chassis.distance_pid.enable()
@@ -135,6 +136,7 @@ class ObstacleHighGoal:
             self.state = States.firing
             self.chassis.range_setpoint = 0.0
             self.chassis.track_vision = False
+            self.chassis.distance_pid.reset()
         if self.state == States.firing and self.shooter.state == shooter.States.shooting:
             self.shooter.change_state(shooter.States.shooting)
             self.intake.state = intake.States.fire

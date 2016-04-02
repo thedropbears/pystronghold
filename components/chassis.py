@@ -19,7 +19,7 @@ class BlankPIDOutput(PIDOutput):
 
 class Chassis:
 
-    correct_range = 1.4 # m
+    correct_range = 1.5 # m
 
     length = 498.0  # mm
     width = 600.0  # mm
@@ -104,6 +104,7 @@ class Chassis:
         self.distance_pid.setOutputRange(-0.4, 0.4)
         self.distance_pid.setSetpoint(0.0)
         self.reset_distance_pid = False
+        self.pid_counter = 0
 
     def on_enable(self):
         self.bno055.resetHeading()
@@ -132,7 +133,7 @@ class Chassis:
             self.distance_pid.setSetpoint(0.0)
             self.distance_pid.enable()
 
-    def toggle_range_holding(self, setpoint=1.4):
+    def toggle_range_holding(self, setpoint=1.5):
         if not self.range_setpoint:
             self.range_setpoint = setpoint
             self.zero_encoders()
@@ -207,30 +208,34 @@ class Chassis:
         # Are we in setpoint displacement mode?
         if self.distance_pid.isEnable():
             if self.distance_pid.onTarget():# or self.reset_distance_pid:
-                self.reset_distance_pid = False
-                logging.getLogger("chassis").info("Resetting distance, current rf: " + str(self.range_finder.pidGet()))
-                # Let's see if we need to move further
-                x = y = 0.0
-                if self.range_setpoint:
-                    logging.getLogger("chassis").info("RANGE SETPOINT: " + str(self.range_setpoint))
-                    x = self.range_finder.pidGet() - self.range_setpoint
-                    if x > 0.5:
-                        x = 0.5
-                    elif x < -0.5:
-                        x = -0.5
-                if self.track_vision:
-                    y = self.vision.pidGet()*0.3#*self.range_finder.pidGet()*0.3  # TODO we need proper scaling factors here
-                    if y > 0.3:
-                        y = 0.3
-                    elif y < -0.3:
-                        y = -0.3
-                self.distance_pid.disable()
-                self.zero_encoders()
-                self.distance_pid_heading = constrain_angle(math.atan2(y, x)+self.bno055.getAngle())
-                self.distance_pid.setSetpoint(math.sqrt(x**2+y**2))
-                self.distance_pid.reset()
-                self.distance_pid.enable()
-                logging.getLogger("chassis").info("DIST PID ON TARGET: " + str(self.distance_pid.onTarget()))
+                if self.pid_counter > 10:
+                    self.reset_distance_pid = False
+                    logging.getLogger("chassis").info("Resetting distance, current rf: " + str(self.range_finder.pidGet()))
+                    # Let's see if we need to move further
+                    x = y = 0.0
+                    if self.range_setpoint:
+                        logging.getLogger("chassis").info("RANGE SETPOINT: " + str(self.range_setpoint))
+                        x = self.range_finder.pidGet() - self.range_setpoint
+                        if x > 0.5:
+                            x = 0.5
+                        elif x < -0.5:
+                            x = -0.5
+                    if self.track_vision:
+                        y = self.vision.pidGet()*0.3#*self.range_finder.pidGet()*0.3  # TODO we need proper scaling factors here
+                        if y > 0.3:
+                            y = 0.3
+                        elif y < -0.3:
+                            y = -0.3
+                    self.distance_pid.disable()
+                    self.zero_encoders()
+                    self.distance_pid_heading = constrain_angle(math.atan2(y, x)+self.bno055.getAngle())
+                    self.distance_pid.setSetpoint(math.sqrt(x**2+y**2))
+                    self.distance_pid.reset()
+                    self.distance_pid.enable()
+                    logging.getLogger("chassis").info("DIST PID ON TARGET: " + str(self.distance_pid.onTarget()))
+                    self.pid_counter = 0
+                else:
+                    self.pid_counter += 1
 
             # Keep driving
             self.vx = math.cos(self.distance_pid_heading) * self.distance_pid_output.output
@@ -273,7 +278,7 @@ class Chassis:
         return abs(self.range_finder.getDistance() - self.range_setpoint) < 0.1
 
     def on_vision_target(self):
-        return abs(self.vision.pidGet()) < 0.05
+        return self.vision.no_vision_counter == 0.0 and abs(self.vision.pidGet()) < 0.02
 
 class SwerveModule():
     def __init__(self, drive, steer,
