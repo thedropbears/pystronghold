@@ -29,7 +29,7 @@ class ObstacleHighGoal:
     bno055 = bno055.BNO055
 
     def __init__(self, delta_x, delta_y, delta_heading=0.0, portcullis=False):
-        self.straight = 4.6
+        self.straight = 4.1
         self.delta_x = delta_x
         self.delta_y = delta_y
         self.delta_heading = delta_heading
@@ -78,6 +78,7 @@ class ObstacleHighGoal:
                 return
             self.chassis.field_displace(self.straight, 0.0)
             self.state = States.through_obstacle
+            self.chassis.distance_pid.setOutputRange(-0.55, 0.55)
             self.logger.info("SETPOINT: " + str(self.chassis.distance_pid.getSetpoint()))
         if self.state == States.through_obstacle and self.chassis.distance_pid.onTarget():
             # Let the distance PID do its magic...
@@ -94,6 +95,7 @@ class ObstacleHighGoal:
         if self.state == States.strafing and self.chassis.distance_pid.onTarget():
             # Dead reckoning is done - engage the rangefinder
             # Leave the distance PID running as it will read the rf for us
+            self.chassis.distance_pid.setOutputRange(-0.4, 0.4)
             self.logger.info("Strafing finished, distance: " + str(self.chassis.distance))
             self.state = States.range_finding
             self.chassis.distance_pid.reset()
@@ -129,7 +131,7 @@ class ObstacleHighGoal:
             self.chassis.distance_pid.setSetpoint(0.0)
             self.chassis.range_setpoint = 0.0
             self.chassis.track_vision = False"""
-        if (self.state == States.goal_tracking and self.chassis.on_vision_target()):# or ((time.time() - self.start_time) > 12): #self.chassis.distance_pid.onTarget():
+        if (self.state == States.goal_tracking and self.chassis.on_vision_target()) and self.chassis.on_range_target():# or ((time.time() - self.start_time) > 12): #self.chassis.distance_pid.onTarget():
             # We made it to the target point, so fire away!
             self.shooter.change_state(shooter.States.shooting)
             self.intake.state = intake.States.fire
@@ -150,7 +152,7 @@ class LowBarCentreTower(ObstacleHighGoal):
         # Barker field: delta_x = 2.4, delta_y = -3.8
         #super().__init__(2.0, -1.8, 0.0)
         #should be correct for real field
-        super().__init__(1.2, -3.8, 0.0)
+        super().__init__(1.0, -3.3, 0.0)
 
 class LowBarCentreTowerTest(ObstacleHighGoal):
     MODE_NAME = "TEST MODE: Low bar, CENTRE tower"
@@ -165,14 +167,14 @@ class LowBarLeftTower(ObstacleHighGoal):
     MODE_NAME = "Low bar, LEFT tower"
 
     def __init__(self):
-        super().__init__(2.0, -2.6, -math.pi / 3.0)
+        super().__init__(2.7, -2.2, -math.pi / 3.0)
 
 class Portcullis2CentreTower(ObstacleHighGoal):
     MODE_NAME = "Portcullis position 2, CENTRE tower"
 
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, -3.8+1.0*1.35, 0.0, True)
+        super().__init__(1.2, -3.3+1.0*1.35, 0.0, True)
 
 
 class Portcullis2LeftTower(ObstacleHighGoal):
@@ -188,7 +190,7 @@ class Portcullis3CentreTower(ObstacleHighGoal):
 
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, -3.8+2.0*1.35, 0.0, True)
+        super().__init__(1.2, -3.3+2.0*1.35, 0.0, True)
 
 
 class Portcullis3LeftTower(ObstacleHighGoal):
@@ -212,7 +214,7 @@ class Portcullis4CentreTower(ObstacleHighGoal):
 
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, -3.8+3.0*1.35, 0.0, True)
+        super().__init__(1.2, -3.3+3.0*1.35, 0.0, True)
 
 
 class Portcullis4RightTower(ObstacleHighGoal):
@@ -228,7 +230,7 @@ class Portcullis5CentreTower(ObstacleHighGoal):
 
     def __init__(self):
         # Barker field: delta_x = 2.4, delta_y = -3.8
-        super().__init__(1.2, -3.8+4.0*1.35, 0.0, True)
+        super().__init__(1.2, -3.3+4.0*1.35, 0.0, True)
 
 
 class Portcullis5RightTower(ObstacleHighGoal):

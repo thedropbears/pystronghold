@@ -41,14 +41,19 @@ class StrongholdRobot(magicbot.MagicRobot):
         Tu = 1.6
         Ku = 0.6
         Kp = Ku * 0.3
-        self.heading_hold_pid = wpilib.PIDController(0.6,
+        self.heading_hold_pid = wpilib.PIDController(0.8,
+                                                     0.0,
+                                                     0.3, #2.0 * Kp / Tu * 0.1, 1.0 * Kp * Tu / 20.0 * 0,
+                                                     self.bno055, self.heading_hold_pid_output)
+        """self.heading_hold_pid = wpilib.PIDController(0.6,
                                                      2.0 * Kp / Tu * 0.1,
                                                      1.0 * Kp * Tu / 20.0 * 0,
-                                                     self.bno055, self.heading_hold_pid_output)
+                                                     self.bno055, self.heading_hold_pid_output)"""
         self.heading_hold_pid.setAbsoluteTolerance(3.0*math.pi/180.0)
         self.heading_hold_pid.setContinuous(True)
         self.heading_hold_pid.setInputRange(-math.pi, math.pi)
-        self.heading_hold_pid.setOutputRange(-1.0, 1.0)
+        self.heading_hold_pid.setOutputRange(-0.2, 0.2)
+        #self.heading_hold_pid.setOutputRange(-1.0, 1.0)
         self.intake_motor.setFeedbackDevice(wpilib.CANTalon.FeedbackDevice.QuadEncoder)
         self.intake_motor.reverseSensor(False)
         self.joystick_rate = 0.3

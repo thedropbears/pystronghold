@@ -19,7 +19,7 @@ class BlankPIDOutput(PIDOutput):
 
 class Chassis:
 
-    correct_range = 1.5 # m
+    correct_range = 1.65 # m
 
     length = 498.0  # mm
     width = 600.0  # mm
@@ -133,7 +133,7 @@ class Chassis:
             self.distance_pid.setSetpoint(0.0)
             self.distance_pid.enable()
 
-    def toggle_range_holding(self, setpoint=1.5):
+    def toggle_range_holding(self, setpoint=1.65):
         if not self.range_setpoint:
             self.range_setpoint = setpoint
             self.zero_encoders()
@@ -278,7 +278,7 @@ class Chassis:
         return abs(self.range_finder.getDistance() - self.range_setpoint) < 0.1
 
     def on_vision_target(self):
-        return self.vision.no_vision_counter == 0.0 and abs(self.vision.pidGet()) < 0.02
+        return self.vision.no_vision_counter == 0.0 and abs(self.vision.pidGet()) < 0.035
 
 class SwerveModule():
     def __init__(self, drive, steer,
