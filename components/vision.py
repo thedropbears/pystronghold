@@ -18,7 +18,7 @@ class Vision:
     video_contrast = 0.5
     video_brightness = 0.5
     video_saturation = 0.5
-    video_exposure = 2  # min 3 max 2047
+    video_exposure = 5  # min 3 max 2047
     video_white_balance = 4000  # min 2000 max 6500
     video_gain = 0.0
     def __init__(self):
@@ -162,8 +162,9 @@ def setup_capture(device_idx=-1):
     device_string = str(device_idx)
     if device_idx < 0:
         device_string = str(0)
-    v4l2_str = "v4l2-ctl -d /dev/video" + device_string + " -c exposure_auto=1 -c exposure_auto_priority=0 -c exposure_absolute=" \
-            + str(Vision.video_exposure) + " -c white_balance_temperature_auto=0 -c white_balance_temperature=" + str(Vision.video_white_balance)
+    v4l2_str = "v4l2-ctl -d /dev/video" + device_string + " -c exposure_auto=1 -c exposure_absolute=" \
+            + str(Vision.video_exposure)
+            #+ " -c white_balance_temperature_auto=0 -c white_balance_temperature=" + str(Vision.video_white_balance)
     print(v4l2_str)
     cap = cv2.VideoCapture(device_idx)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, Vision.video_width)
