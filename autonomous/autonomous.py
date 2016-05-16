@@ -7,7 +7,8 @@ from components import bno055
 from wpilib import CANTalon
 import logging
 
-import math, time
+import math
+import time
 
 
 class States:
@@ -63,7 +64,6 @@ class ObstacleHighGoal:
         self.chassis.track_vision = False
         self.shooter.change_state(shooter.States.off)
         self.intake.state = intake.States.no_ball
-        self.chassis.vision.write_flag.value = 1
 
     def on_iteration(self, tm):
         '''Drive forward the same amount, then move by delta_x and delta_y

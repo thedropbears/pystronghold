@@ -61,22 +61,10 @@ class StrongholdRobot(magicbot.MagicRobot):
     def putData(self):
         self.sd.putDouble("range_finder", self.range_finder.getDistance())
         self.sd.putDouble("gyro", self.bno055.getHeading())
-        vision_array = self.vision.get()
-        vision_x = None
-        vision_w = None
-        vision_h = None
-        if not vision_array:
-            vision_x = -2
-            vision_w = -2
-            vision_h = -2
-        else:
-            vision_x = vision_array[0]
-            vision_w = vision_array[2]
-            vision_h = vision_array[3]
         self.sd.putDouble("vision_pid_get", self.vision.pidGet())
-        self.sd.putDouble("vision_x", vision_x)
-        self.sd.putDouble("vision_w", vision_w)
-        self.sd.putDouble("vision_h", vision_h)
+        self.sd.putDouble("vision_x", self.vision._values['x'])
+        self.sd.putDouble("vision_w", self.vision._values['w'])
+        self.sd.putDouble("vision_h", self.vision._values['h'])
         self.sd.putDouble("vx", self.chassis.vx)
         self.sd.putDouble("vy", self.chassis.vy)
         self.sd.putDouble("vz", self.chassis.vz)

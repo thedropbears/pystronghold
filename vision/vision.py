@@ -3,6 +3,8 @@ import numpy as np
 import argparse
 import os
 import re
+import time
+from networktables import NetworkTable
 
 def findTarget(image):
     height = image.shape[0]
@@ -64,14 +66,26 @@ def findTarget(image):
 
     return x, y, w, h, image
 
-def findTargetNetworkTables(image):
-    x, y, w, h, img = findTarget(image)
-    # TODO - send to network tables
+class NTWrapper:
+    def __init__(self):
+        NetworkTable.setIPAddress('127.0.0.1')
+        NetworkTable.setClientMode()
+        NetworkTable.initialize()
+        self.nt = NetworkTable.getTable("vision")
 
-    return img
+    def findTargetNetworkTables(self, image):
+        x, y, w, h, img = findTarget(image)
+        # TODO - send to network tables
+        self.nt.putDouble('x', x)
+        self.nt.putDouble('y', y)
+        self.nt.putDouble('w', w)
+        self.nt.putDouble('h', h)
+        self.nt.putDouble('time', time.time())
+        return img
 
 def init_filter():
-    return findTargetNetworkTables
+    ntw = NTWrapper()
+    return ntw.findTargetNetworkTables
 
 def setup_capture(device):
     if not os.path.exists(device):
