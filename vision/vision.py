@@ -77,28 +77,33 @@ def setup_capture(device):
     if not os.path.exists(device):
         raise Exception("No such video device: %s" % device)
 
+    root_device = os.path.realpath(device)
+
     # Try to find the settings from the mjpg-streamer config file
     v4l2_str = "v4l2-ctl -d %s" % device
     with open('mjpg-streamer') as f:
         for line in f:
-            if "--device %s" % device in line:
-                # A bunch of regexes to find the parameters
-                p = re.compile('-ex ([0-9]+)')
-                if p.search(line):
-                    v4l2_str += " -c exposure_auto=1 -c exposure_absolute=%s" % p.search(line).group(1)
-                    print("Found exposure setting: %s" % p.search(line).group(1))
-                p = re.compile('-br ([0-9]+)')
-                if p.search(line):
-                    v4l2_str += " -c brightness=%s" % p.search(line).group(1)
-                    print("Found brightness setting: %s" % p.search(line).group(1))
-                p = re.compile('-co ([0-9]+)')
-                if p.search(line):
-                    v4l2_str += " -c contrast=%s" % p.search(line).group(1)
-                    print("Found contrast setting: %s" % p.search(line).group(1))
-                p = re.compile('-sa ([0-9]+)')
-                if p.search(line):
-                    v4l2_str += " -c saturation=%s" % p.search(line).group(1)
-                    print("Found saturation setting: %s" % p.search(line).group(1))
+            # Follow symlinks to see if they point at the same device
+            if "--device" in line:
+                p = re.compile('--device ([^ \t\n\r\f\v"\']+)')
+                if os.path.realpath(p.search(line).group(1)) == root_device:
+                    # A bunch of regexes to find the parameters
+                    p = re.compile('-ex ([0-9]+)')
+                    if p.search(line):
+                        v4l2_str += " -c exposure_auto=1 -c exposure_absolute=%s" % p.search(line).group(1)
+                        print("Found exposure setting: %s" % p.search(line).group(1))
+                    p = re.compile('-br ([0-9]+)')
+                    if p.search(line):
+                        v4l2_str += " -c brightness=%s" % p.search(line).group(1)
+                        print("Found brightness setting: %s" % p.search(line).group(1))
+                    p = re.compile('-co ([0-9]+)')
+                    if p.search(line):
+                        v4l2_str += " -c contrast=%s" % p.search(line).group(1)
+                        print("Found contrast setting: %s" % p.search(line).group(1))
+                    p = re.compile('-sa ([0-9]+)')
+                    if p.search(line):
+                        v4l2_str += " -c saturation=%s" % p.search(line).group(1)
+                        print("Found saturation setting: %s" % p.search(line).group(1))
     os.system(v4l2_str)
     cap = cv2.VideoCapture(device)
     return cap
