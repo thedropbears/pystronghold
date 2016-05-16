@@ -9,9 +9,10 @@ def findTarget(image):
     width = image.shape[1]
     # Convert from BGR colourspace to HSV. Makes thresholding easier.
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    # #Define the colours to look for (in HSV)
-    lower_colour = np.array([80 * 0.5, 0.7 * 255, 0.08 * 255])
-    upper_colour = np.array([220 * 0.5, 1.0 * 255, 0.63 * 255])
+    # Define the colours to look for (in HSV)
+    # Use values straight from GIMP
+    lower_colour = np.array([80 * 0.5, 70 * 255 / 100, 8 * 255 / 100])
+    upper_colour = np.array([220 * 0.5, 100 * 255 / 100, 63 * 255 / 100])
     # Create a mask that filters out only those colours
     mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
     # Errode and dialate the image to get rid of noise
@@ -27,7 +28,7 @@ def findTarget(image):
     try:
         cnt = contours[np.argmax(areas)]
     except ValueError:
-        return dilated
+        return 0.0, 0.0, 0.0, 0.0, image
 
     # Draw the contours
     cv2.drawContours(image, contours, 0, (255, 0, 0), 1)
@@ -35,7 +36,7 @@ def findTarget(image):
     # get the area of the contour
     area = cv2.contourArea(cnt)
     if area / width / height > 0.05:
-        return image
+        return 0.0, 0.0, 0.0, 0.0, image
     # get a rectangle and then a box around the largest countour
     rect = cv2.minAreaRect(cnt)
 
@@ -49,7 +50,7 @@ def findTarget(image):
         (x, y) = xy
         (w, h) = wh
     except ValueError:
-        return image
+        return 0.0, 0.0, 0.0, 0.0, image
     if rotation_angle < -45.0 or rotation_angle > 45.0:
         w, h = h, w
     # Draw the centre point
@@ -61,10 +62,16 @@ def findTarget(image):
     # Send the results to NetworkTables
     # TODO!!
 
-    return image
+    return x, y, w, h, image
+
+def findTargetNetworkTables(image):
+    x, y, w, h, img = findTarget(image)
+    # TODO - send to network tables
+
+    return img
 
 def init_filter():
-    return findTarget
+    return findTargetNetworkTables
 
 def setup_capture(device):
     if not os.path.exists(device):
@@ -118,15 +125,15 @@ if __name__ == "__main__":
     if args.file:
         retval, image = cap.read()
         if retval:
-            image = findTarget(None, image)
+            x, y, w, h, image = findTarget(image)
             cv2.imwrite(args.file, image)
     if args.verbose:
         image = cv2.imread(args.verbose, cv2.IMREAD_COLOR)
-        image = findTarget(image)
+        x, y, w, h, image = findTarget(image)
         # print("x: %f\ny: %f\nwidth: %f\nheight: %f" % (x, y, w, h))
     if args.showfile:
         image = cv2.imread(args.showfile, cv2.IMREAD_COLOR)
-        image = findTarget(image)
+        x, y, w, h, image = findTarget(image)
         cv2.imshow('image', image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -134,7 +141,7 @@ if __name__ == "__main__":
         window = cv2.namedWindow("preview")
         while True:
             retval, image = cap.read()
-            img = findTarget(image)
+            x, y, w, h, image = findTarget(image)
             cv2.imshow("preview", image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
