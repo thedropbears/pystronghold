@@ -4,6 +4,7 @@ import argparse
 import os
 import re
 import time
+import logging
 from networktables import NetworkTable
 
 def findTarget(image):
@@ -87,43 +88,52 @@ def init_filter():
     ntw = NTWrapper()
     return ntw.findTargetNetworkTables
 
-def setup_capture(device):
+def setCaptureParameters(device, mjpg_config_file='mjpg-streamer'):
     if not os.path.exists(device):
         raise Exception("No such video device: %s" % device)
+
+    logger = logging.getLogger("vision")
 
     root_device = os.path.realpath(device)
 
     # Try to find the settings from the mjpg-streamer config file
     v4l2_str = "v4l2-ctl -d %s" % device
-    with open('mjpg-streamer') as f:
-        for line in f:
-            # Follow symlinks to see if they point at the same device
-            if "--device" in line:
-                p = re.compile('--device ([^ \t\n\r\f\v"\']+)')
-                if os.path.realpath(p.search(line).group(1)) == root_device:
-                    # A bunch of regexes to find the parameters
-                    p = re.compile('-ex ([0-9]+)')
-                    if p.search(line):
-                        v4l2_str += " -c exposure_auto=1 -c exposure_absolute=%s" % p.search(line).group(1)
-                        print("Found exposure setting: %s" % p.search(line).group(1))
-                    p = re.compile('-br ([0-9]+)')
-                    if p.search(line):
-                        v4l2_str += " -c brightness=%s" % p.search(line).group(1)
-                        print("Found brightness setting: %s" % p.search(line).group(1))
-                    p = re.compile('-co ([0-9]+)')
-                    if p.search(line):
-                        v4l2_str += " -c contrast=%s" % p.search(line).group(1)
-                        print("Found contrast setting: %s" % p.search(line).group(1))
-                    p = re.compile('-sa ([0-9]+)')
-                    if p.search(line):
-                        v4l2_str += " -c saturation=%s" % p.search(line).group(1)
-                        print("Found saturation setting: %s" % p.search(line).group(1))
-    os.system(v4l2_str)
-    cap = cv2.VideoCapture(device)
-    return cap
+    try:
+        with open(mjpg_config_file) as f:
+            for line in f:
+                # Follow symlinks to see if they point at the same device
+                if "--device" in line:
+                    p = re.compile('--device ([^ \t\n\r\f\v"\']+)')
+                    if os.path.realpath(p.search(line).group(1)) == root_device:
+                        # A bunch of regexes to find the parameters
+                        p = re.compile('-ex ([0-9]+)')
+                        if p.search(line):
+                            v4l2_str += (" -c exposure_auto=1 -c exposure_absolute=%s"
+                                         % p.search(line).group(1))
+                            logger.info("Found exposure setting: %s"
+                                        % p.search(line).group(1))
+                        p = re.compile('-br ([0-9]+)')
+                        if p.search(line):
+                            v4l2_str += " -c brightness=%s" % p.search(line).group(1)
+                            logger.info("Found brightness setting: %s"
+                                        % p.search(line).group(1))
+                        p = re.compile('-co ([0-9]+)')
+                        if p.search(line):
+                            v4l2_str += " -c contrast=%s" % p.search(line).group(1)
+                            logger.info("Found contrast setting: %s"
+                                        % p.search(line).group(1))
+                        p = re.compile('-sa ([0-9]+)')
+                        if p.search(line):
+                            v4l2_str += " -c saturation=%s" % p.search(line).group(1)
+                            logger.info("Found saturation setting: %s"
+                                        % p.search(line).group(1))
+        os.system(v4l2_str)
+    except:
+        raise  # pass  # File not found
 
 # Allow easy capturing of sample images using same settings as on robot
 if __name__ == "__main__":
+    logger = logging.getLogger("vision")
     parser = argparse.ArgumentParser(description='Capture sample image.')
     parser.add_argument('--device', help='capture device', default='/dev/video0')
     parser.add_argument('--video', help='display a live video feed of the capture', action='store_true')
@@ -134,13 +144,17 @@ if __name__ == "__main__":
     parser.add_argument('--showfile', help='display a specific file with a bounding box drawn around it',
             type=str, default=None)
     args = parser.parse_args()
+
+    logging.basicConfig(level=20)  # Show info messages
+
     cap = None
     if args.file or args.video:
-        cap = setup_capture(args.device)
-        print("Brightness: %f" % cap.get(cv2.CAP_PROP_BRIGHTNESS))
-        print("Contrast: %f" % cap.get(cv2.CAP_PROP_CONTRAST))
-        print("Saturation: %f" % cap.get(cv2.CAP_PROP_SATURATION))
-        print("Exposure: %f" % cap.get(cv2.CAP_PROP_EXPOSURE))
+        setCaptureParameters(args.device)
+        cap = cv2.VideoCapture(args.device)
+        logger.info("Brightness: %f" % cap.get(cv2.CAP_PROP_BRIGHTNESS))
+        logger.info("Contrast: %f" % cap.get(cv2.CAP_PROP_CONTRAST))
+        logger.info("Saturation: %f" % cap.get(cv2.CAP_PROP_SATURATION))
+        logger.info("Exposure: %f" % cap.get(cv2.CAP_PROP_EXPOSURE))
     if args.file:
         retval, image = cap.read()
         if retval:
