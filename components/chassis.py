@@ -97,7 +97,7 @@ class Chassis:
         self.distance_pid_output = BlankPIDOutput()
         # TODO tune the distance PID values
         self.distance_pid = PIDController(1.0, 0.02, 0.0, self, self.distance_pid_output)
-        self.distance_pid.setPercentTolerance(3.0)
+        self.distance_pid.setAbsoluteTolerance(0.05)
         self.distance_pid.setToleranceBuffer(5)
         self.distance_pid.setContinuous(False)
         self.distance_pid.setInputRange(-10.0, 10.0)  # TODO check that this range is good for us
