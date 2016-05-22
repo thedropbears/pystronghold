@@ -8,12 +8,9 @@ import os
 class Vision:
     def __init__(self):
         # mjpg-streamer isn't setting parameters properly yet, so do it here
-        if hal.HALIsSimulation():
-            mjpg_config_file = ('../vision/mjpg-streamer')
-        else:
-            mjpg_config_file = '/etc/default/mjpg-streamer'
-        setCaptureParameters("/dev/v4l/by-id/usb-046d_0825_96EBCE50-video-index0",
-                             mjpg_config_file)
+        if not hal.HALIsSimulation():
+            setCaptureParameters("/dev/v4l/by-id/usb-046d_0825_96EBCE50-video-index0",
+                                 "/etc/default/mjpg-streamer")
         self.nt = NetworkTable.getTable('vision')
         self._values = {'x': 0.0, 'y': 0.0, 'w': 0.0, 'h': 0.0, 'time': 0.0}
         self._smoothed_pidget = 0.0
