@@ -1,9 +1,7 @@
 from networktables import NetworkTable
 from wpilib.interfaces import PIDSource
 from vision.vision import setCaptureParameters
-import inspect
 import hal
-import os
 
 class Vision:
     def __init__(self):
