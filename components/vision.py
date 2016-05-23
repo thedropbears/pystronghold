@@ -1,12 +1,12 @@
 from networktables import NetworkTable
 from wpilib.interfaces import PIDSource
-from vision.vision import setCaptureParameters
 import hal
 
 class Vision:
     def __init__(self):
         # mjpg-streamer isn't setting parameters properly yet, so do it here
         if not hal.HALIsSimulation():
+            from vision.vision import setCaptureParameters
             setCaptureParameters("/dev/v4l/by-id/usb-046d_0825_96EBCE50-video-index0",
                                  "/etc/default/mjpg-streamer")
         self.nt = NetworkTable.getTable('vision')
