@@ -5,7 +5,7 @@ import hal
 class Vision:
     def __init__(self):
         # mjpg-streamer isn't setting parameters properly yet, so do it here
-        if not hal.HALIsSimulation():
+        if not hal.HALIsSimulation():  # pragma: no cover
             from vision.vision import setCaptureParameters
             setCaptureParameters("/dev/v4l/by-id/usb-046d_0825_96EBCE50-video-index0",
                                  "/etc/default/mjpg-streamer")
@@ -27,7 +27,7 @@ class Vision:
             else:
                 self.no_vision_counter += 1
 
-    def getPIDSourceType(self):
+    def getPIDSourceType(self):  # pragma: no cover
         return PIDSource.PIDSourceType.kDisplacement
 
     def pidGet(self):

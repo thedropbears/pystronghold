@@ -14,7 +14,7 @@ class RangeFinder(PIDSource):
     def getDistance(self):
         return self.range_finder_counter.getPeriod() * 1000000 / 1000 # 10 usec is 1cm, return as metres
 
-    def getPIDSourceType(self):
+    def getPIDSourceType(self):  # pragma: no cover
         return PIDSource.PIDSourceType.kDisplacement
 
     def pidGet(self):
