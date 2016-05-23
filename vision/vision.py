@@ -67,7 +67,7 @@ def findTarget(image):
 
     return x, y, w, h, image
 
-class NTWrapper:
+class NTWrapper:  # pragma: no cover
     def __init__(self):
         NetworkTable.setIPAddress('127.0.0.1')
         NetworkTable.setClientMode()
@@ -84,11 +84,14 @@ class NTWrapper:
         self.nt.putDouble('time', time.time())
         return img
 
-def init_filter():
+
+def init_filter():  # pragma: no cover
     ntw = NTWrapper()
     return ntw.findTargetNetworkTables
 
-def setCaptureParameters(device, mjpg_config_file='mjpg-streamer'):
+
+def setCaptureParameters(device,
+                         mjpg_config_file='mjpg-streamer'):  # pragma: no cover
     if not os.path.exists(device):
         raise Exception("No such video device: %s" % device)
 
