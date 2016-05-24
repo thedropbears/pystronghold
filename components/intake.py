@@ -41,6 +41,7 @@ class Intake:
     def intake(self):
         """ Spin the intake at the maximum speed to suck balls in """
         self.speed_mode()
+        self._speed = 0.7
         pass
 
     def backdrive(self):
@@ -67,6 +68,13 @@ class Intake:
         """ Jam the ball in the intake """
         self.position_mode()
         self.intake_motor.set(-1000)
+
+    def up_to_speed(self):
+        """ Is the intake up to speed yet? """
+        return self._speed == 0.7 and self.intake_motor.getClosedLoopError() < Intake.max_speed*0.05
+
+    def ball_detected(self):
+        return self.intake_motor.getClosedLoopError() > Intake.max_speed*0.1 and self.acceleration < 0.0 and self.current_rate > 0.0
 
     def speed_mode(self):
         self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)
