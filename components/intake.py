@@ -38,6 +38,45 @@ class Intake:
         self.sd = NetworkTable.getTable('SmartDashboard')
         self.contact_time = time.time()
 
+    def intake(self):
+        """ Spin the intake at the maximum speed to suck balls in """
+        self.speed_mode()
+        pass
+
+    def backdrive(self):
+        """ Backdrive the intake """
+        self.speed_mode()
+        pass
+
+    def backdrive_slow(self):
+        """ Backdrive the intake at 0.5 speed """
+        self.speed_mode()
+        pass
+
+    def backdrive_pin(self):
+        """ Used when pinning the ball """
+        self.speed_mode()
+        pass
+
+    def stop(self):
+        """ Stop the intake """
+        self.speed_mode()
+        pass
+
+    def jam(self):
+        """ Jam the ball in the intake """
+        self.position_mode()
+        self.intake_motor.set(-1000)
+
+    def speed_mode(self):
+        self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)
+        self.intake_motor.setPID(0.0, 0.0, 0.0, 1023.0/Intake.max_speed)
+
+    def position_mode(self):
+        self.intake_motor.changeControlMode(CANTalon.ControlMode.Position)
+        self.intake_motor.setPID(1.0, 0.0, 0.0)
+        self.intake_motor.setPosition(0.0)
+
     def shooting(self):
         if self.state == States.fire:
             return True
@@ -80,16 +119,16 @@ class Intake:
         maxlen = self.current_deque.maxlen
         prev_current_avg = sum(self.current_deque)/maxlen
         self.current_deque.append(self.intake_motor.getOutputCurrent())
-        current_avg = sum(self.current_deque) / maxlen
-        current_rate = current_avg - prev_current_avg#self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
-        velocity = self.intake_motor.get()
-        acceleration = velocity - self.previous_velocity
+        self.current_avg = sum(self.current_deque) / maxlen
+        current_rate = self.current_avg - prev_current_avg#self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
+        self.velocity = self.intake_motor.get()
+        self.acceleration = self.velocity - self.previous_velocity
 
-        self.sd.putDouble("intake_current_rate", current_rate)
-        self.sd.putDouble("intake_current_avg", current_avg)
+        self.sd.putDouble("intake_current_rate", self.current_rate)
+        self.sd.putDouble("intake_current_avg", self.current_avg)
         self.sd.putDouble("intake_closed_loop_error", self.intake_motor.getClosedLoopError())
-        self.sd.putDouble("intake_acceleration", acceleration)
-        self.sd.putDouble("intake_velocity", velocity)
+        self.sd.putDouble("intake_acceleration", self.acceleration)
+        self.sd.putDouble("intake_velocity", self.velocity)
 
 
         if self.state != States.no_ball and self.state != States.pinned:
