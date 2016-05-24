@@ -57,6 +57,7 @@ class Intake:
     def backdrive_pin(self):
         """ Used when pinning the ball """
         self.speed_mode()
+        self._speed = 0.3
         pass
 
     def stop(self):
@@ -75,6 +76,12 @@ class Intake:
 
     def ball_detected(self):
         return self.intake_motor.getClosedLoopError() > Intake.max_speed*0.1 and self.acceleration < 0.0 and self.current_rate > 0.0
+
+    def slowing(self):
+        return velocity < 0.0 and acceleration > 0.0
+
+    def pinned(self):
+        return self.intake_motor.getClosedLoopError() < 20
 
     def speed_mode(self):
         self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)

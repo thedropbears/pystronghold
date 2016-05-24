@@ -28,4 +28,18 @@ class IntakeAutomation(magicbot.state_machine.StateMachine):
 
     @state()
     def pinning(self):
-        pass
+        self.shooter.change_state(shooter.States.backdriving)
+        self.intake.backdrive_pin()
+        if intake.slowing():
+            self.intake_motor.changeControlMode(CANTalon.ControlMode.Position)
+            self.intake_motor.setPID(1.0, 0.0, 0.0)
+            self.intake_motor.setPosition(0.0)
+            self.intake_motor.set(-1000)
+            self.next_state("pinned")
+
+    @state()
+    def pinned(self):
+        self.shooter.change_state(shooter.States.off)
+        self._speed = 0.0
+        if intake.pinned():
+            self.done()
