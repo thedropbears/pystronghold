@@ -1,15 +1,21 @@
 import magicbot.state_machine
 from components import shooter
 
-class IntakeAutomation(magicbot.state_machine.StateMachine):
+class BoulderAutomation(magicbot.state_machine.StateMachine):
     intake = Intake
     shooter = Shooter
+
+    def intake_boulder(self):
+        engage("intaking_free")
+
+    def shoot_boulder(self):
+        engage("spin_up_shooter")
 
     def done(self):
         super().done()
         self.intake.stop()
 
-    @state(first=True)
+    @state()
     def intaking_free(self):
         self.intake.intake()
         if intake.up_to_speed:
@@ -43,3 +49,7 @@ class IntakeAutomation(magicbot.state_machine.StateMachine):
         self._speed = 0.0
         if intake.pinned():
             self.done()
+
+    @state()
+    def spin_up_shooter(self):
+        pass

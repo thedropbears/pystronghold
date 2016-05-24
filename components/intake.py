@@ -41,8 +41,7 @@ class Intake:
     def intake(self):
         """ Spin the intake at the maximum speed to suck balls in """
         self.speed_mode()
-        self._speed = 0.7
-        pass
+        self.intake_motor.set(0.7*Intake.max_speed)
 
     def backdrive(self):
         """ Backdrive the intake """
@@ -52,18 +51,19 @@ class Intake:
     def backdrive_slow(self):
         """ Backdrive the intake at 0.5 speed """
         self.speed_mode()
+        self.intake_motor.set(-0.5*Intake.max_speed)
         pass
 
     def backdrive_pin(self):
         """ Used when pinning the ball """
         self.speed_mode()
         self._speed = 0.3
-        pass
+        self.intake_motor.set(-0.3*Intake.max_speed)
 
     def stop(self):
         """ Stop the intake """
         self.speed_mode()
-        pass
+        self.intake_motor.set(0.0)
 
     def jam(self):
         """ Jam the ball in the intake """
@@ -72,7 +72,7 @@ class Intake:
 
     def up_to_speed(self):
         """ Is the intake up to speed yet? """
-        return self._speed == 0.7 and self.intake_motor.getClosedLoopError() < Intake.max_speed*0.05
+        return self.intake_motor.getSetpoint() == 0.7*Intake.max_speed and self.intake_motor.getClosedLoopError() < Intake.max_speed*0.05
 
     def ball_detected(self):
         return self.intake_motor.getClosedLoopError() > Intake.max_speed*0.1 and self.acceleration < 0.0 and self.current_rate > 0.0
