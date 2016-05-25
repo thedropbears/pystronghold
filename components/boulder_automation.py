@@ -18,6 +18,7 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
     @state()
     def intaking_free(self):
         self.intake.intake()
+        self.intake.clear_queues()
         if intake.up_to_speed:
             self.next_state("up_to_speed")
 
@@ -49,6 +50,7 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
         self._speed = 0.0
         if intake.pinned():
             self.done()
+            self.intake.write_log = True
 
     @state()
     def spin_up_shooter(self):
