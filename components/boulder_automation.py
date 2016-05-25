@@ -31,11 +31,11 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
 
     @timed_state(duration=0.3, next_state="pinning")
     def intaking_contact(self):
-        self.shooter.change_state(shooter.States.backdriving)
+        self.shooter.backdrive()
 
     @state()
     def pinning(self):
-        self.shooter.change_state(shooter.States.backdriving)
+        self.shooter.backdrive()
         self.intake.backdrive_pin()
         if intake.slowing():
             self.intake_motor.changeControlMode(CANTalon.ControlMode.Position)
@@ -46,7 +46,7 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
 
     @state()
     def pinned(self):
-        self.shooter.change_state(shooter.States.off)
+        self.shooter.off()
         self._speed = 0.0
         if intake.pinned():
             self.done()
@@ -54,4 +54,10 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
 
     @state()
     def spin_up_shooter(self):
-        pass
+        self.shooter.start()
+        if self.shooter.up_to_speed():
+            self.next_state("feed_boulder")
+
+    @timed_state(duration=0.3)
+    def feed_boulder(self):
+        self.intake.intake()

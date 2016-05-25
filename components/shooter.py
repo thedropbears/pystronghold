@@ -26,38 +26,26 @@ class Shooter:
         self.state = States.off
         self._speed = 0.0
 
-    def start_shoot(self):
-        self.state = States.shooting
-        self._changed_state = True
+    def up_to_speed(self):
+        return abs(self.shooter_motor.getClosedLoopError())<= 0.02*(self.max_speed) and self.shooter_motor.getSetpoint() != 0.0
 
-    def stop(self):
-        self.state = States.off
-        self._changed_state = True
+    def start(self):
+        self.shooter_motor.set(-Shooter.max_speed*self.shoot_percentage)
 
     def backdrive(self):
-        self.change_state(States.backdriving)
+        self.shooter_motor.set(Shooter.max_speed*0.01)
 
     def backdrive_recovery(self):
-        self.change_state(States.backdrive_recovery)
+        self.shooter_motor.set(Shooter.max_speed*1.0)
 
-    def toggle(self):
-        if self.state == States.off:
-            self.start_shoot()
-        elif self.state == States.shooting:
-            self.stop()
-
-    def change_state(self, state):
-        if state != self.state:
-            self.state = state
-            self._changed_state = True
+    def stop(self):
+        self.shooter_motor.set(0.0)
 
     def on_enabled(self):
         self.stop()
-        self._speed = 0.0
 
     def on_disabled(self):
-        self.state = States.off
-        self._changed_state = True
+        self.stop()
 
     def execute(self):
         if not self.initialised:
@@ -67,17 +55,3 @@ class Shooter:
             self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed, izone=3000)
             self.initialised = True
 
-        if self._changed_state:
-            if self.state == States.shooting:
-                self._speed = -self.shoot_percentage
-            elif self.state == States.off:
-                self._speed = 0.0
-            elif self.state == States.backdriving:
-                self._speed = 0.01
-            elif self.state == States.backdrive_recovery:
-                self._speed = 1.0
-            self._changed_state = False
-            self.shooter_motor.set(self._speed*Shooter.max_speed)
-            if self.state == States.backdrive_recovery:
-                self.state = States.off
-                self._changed_state = True
