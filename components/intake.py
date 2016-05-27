@@ -102,7 +102,7 @@ class Intake:
         prev_current_avg = sum(self.current_deque)/maxlen
         self.current_deque.append(self.intake_motor.getOutputCurrent())
         self.current_avg = sum(self.current_deque) / maxlen
-        current_rate = self.current_avg - prev_current_avg#self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
+        self.current_rate = self.current_avg - prev_current_avg#self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
         self.velocity = self.intake_motor.get()
         self.acceleration = self.velocity - self.previous_velocity
 
@@ -120,16 +120,4 @@ class Intake:
             self.log_current()
             self.write_log = True
 
-        if self.state == States.fire:
-            self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)
-            self.intake_motor.setPID(0.0, 0.0, 0.0, 1023.0/Intake.max_speed)
-            if abs(self.shooter.shooter_motor.getClosedLoopError())<= 0.02*(self.shooter.max_speed) and self.shooter._speed != 0.0:
-                self._speed = 1.0
-                if not self.shoot_time:
-                    self.shoot_time = time.time()
-            if self.shoot_time and time.time() - self.shoot_time > 1.0:
-                self.state = States.no_ball
-                self.shooter.stop()
-                self.shoot_time = None
-
-        self.previous_velocity = velocity
+        self.previous_velocity = self.velocity

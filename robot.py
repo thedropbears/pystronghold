@@ -11,6 +11,7 @@ from components.shooter import Shooter
 from components import shooter
 from components.intake import Intake
 from components.defeater import Defeater
+from components.boulder_automation import BoulderAutomation
 
 from networktables import NetworkTable
 
@@ -22,6 +23,7 @@ class StrongholdRobot(magicbot.MagicRobot):
     intake = Intake
     shooter = Shooter
     defeater = Defeater
+    boulder_automation = BoulderAutomation
 
     def createObjects(self):
         self.logger = logging.getLogger("robot")
@@ -76,7 +78,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.sd.putDouble("shooter_speed", -self.shooter._speed) # minus sign here so +ve is shooting
         self.sd.putDouble("heading_pid_output", self.heading_hold_pid_output.output)
         self.sd.putDouble("heading_hold_pid_setpoint", self.heading_hold_pid.getSetpoint())
-        self.sd.putDouble("intake_state", self.intake.state)
+        self.sd.putString("boulder_state", self.boulder_automation.current_state)
         self.sd.putDouble("intake_speed", self.intake._speed)
         self.sd.putDouble("distance_pid_output", self.chassis.distance_pid_output.output)
         self.sd.putBoolean("track_vision", self.chassis.track_vision)
@@ -110,16 +112,13 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(6, gamepad=True):
-                if self.shooter.state == shooter.States.off:
-                    self.shooter.start_shoot()
-                else:
-                    self.shooter.toggle()
+                self.boulder_automation.toggle_shoot_boulder()
         except:
             self.onException()
         
         try:
             if self.debounce(2) or self.debounce(1, gamepad=True):
-                self.intake.toggle()
+                self.boulder_automation.toggle_intake_boulder()
         except:
             self.onException()
 
@@ -155,11 +154,7 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(1) or self.debounce(8, gamepad=True):
-                if self.shooter.state == shooter.States.off or (self.shooter.state == shooter.States.shooting and not self.intake.shooting()):
-                    self.shooter.start_shoot()
-                else:
-                    self.shooter.toggle()
-                self.intake.fire()
+                self.boulder_automation.toggle_shoot_boulder()
         except:
             self.onException()
 

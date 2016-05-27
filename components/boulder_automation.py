@@ -1,12 +1,36 @@
 import magicbot.state_machine
-from components import shooter
+from magicbot.state_machine import state, timed_state
+from components.shooter import Shooter
+from components.intake import Intake
 
 class BoulderAutomation(magicbot.state_machine.StateMachine):
     intake = Intake
     shooter = Shooter
 
+    def __init__(self):
+        super().__init__()
+        self.armed = True # warning: if false intake will not feed shooter boulder
+
+    def arm(self):
+        self.armed = True
+
+    def disarm(self):
+        self.armed = False
+
+    def toggle_intake_boulder(self):
+        if not self.is_executing():
+            engage("intaking_free")
+        else:
+            self.done()
+
     def intake_boulder(self):
         engage("intaking_free")
+
+    def toggle_shoot_boulder(self):
+        if not self.is_executing():
+            engage("spin_up_shooter")
+        else:
+            self.done()
 
     def shoot_boulder(self):
         engage("spin_up_shooter")
@@ -14,8 +38,10 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
     def done(self):
         super().done()
         self.intake.stop()
+        self.shooter.stop()
+        self.armed = True
 
-    @state()
+    @state(first=True)
     def intaking_free(self):
         self.intake.intake()
         self.intake.clear_queues()
@@ -26,7 +52,6 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
     def up_to_speed(self):
         if ball_detected:
             self.contact_time = time.time()
-            self.state = States.intaking_contact
             self.next_state("intaking_contact")
 
     @timed_state(duration=0.3, next_state="pinning")
@@ -55,7 +80,7 @@ class BoulderAutomation(magicbot.state_machine.StateMachine):
     @state()
     def spin_up_shooter(self):
         self.shooter.start()
-        if self.shooter.up_to_speed():
+        if self.shooter.up_to_speed() and self.armed:
             self.next_state("feed_boulder")
 
     @timed_state(duration=0.3)

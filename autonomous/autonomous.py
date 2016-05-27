@@ -4,6 +4,7 @@ from components import shooter
 from components import intake
 from components import defeater
 from components import bno055
+from components.boulder_automation import BoulderAutomation
 from wpilib import CANTalon
 import logging
 
@@ -28,6 +29,7 @@ class ObstacleHighGoal:
     defeater = defeater.Defeater
     defeater_motor = CANTalon
     bno055 = bno055.BNO055
+    boulder_automation = BoulderAutomation
 
     def __init__(self, delta_x, delta_y, delta_heading=0.0, portcullis=False):
         self.straight = 4.1
@@ -51,7 +53,7 @@ class ObstacleHighGoal:
         self.chassis.field_oriented = True
         self.chassis.drive(1, 0, 0, 0.0001)
         self.state = States.init
-        self.shooter.change_state(shooter.States.off)
+        self.boulder_automation.done()
         self.intake.stop()
         self.chassis.zero_encoders()
         self.vision_counts = 0
@@ -62,15 +64,14 @@ class ObstacleHighGoal:
         """Cleanup after auto routine"""
         self.chassis.range_setpoint = 0.0
         self.chassis.track_vision = False
-        self.shooter.change_state(shooter.States.off)
-        self.intake.state = intake.States.no_ball
+        self.boulder_automation.done()
 
     def on_iteration(self, tm):
         '''Drive forward the same amount, then move by delta_x and delta_y
         to the position where the vision and range finder take over.
         Final change in heading is specified too.'''
         rf = self.chassis.range_finder.pidGet()
-        self.logger.info("VISION OUTPUT: " + str(self.chassis.vision.pidGet()) + " COUNTER: " + str(self.chassis.vision.no_vision_counter))
+        #self.logger.info("VISION OUTPUT: " + str(self.chassis.vision.pidGet()) + " COUNTER: " + str(self.chassis.vision.no_vision_counter))
         if self.state == States.init:
             if self.portcullis:
                 self.defeater_motor.set(-0.5)
@@ -122,7 +123,8 @@ class ObstacleHighGoal:
             self.chassis.distance_pid.enable()
             self.state = States.goal_tracking
             self.logger.info("On range, distance: " + str(self.chassis.distance))
-            self.shooter.change_state(shooter.States.shooting)
+            self.boulder_automation.disarm()
+            self.boulder_automation.shoot_boulder()
             #TODO: GET RID OF THIS STUFF IF YOU WANT TO VISION 
             """self.shooter.change_state(shooter.States.shooting)
             self.intake.state = intake.States.fire
@@ -133,15 +135,15 @@ class ObstacleHighGoal:
             self.chassis.track_vision = False"""
         if (self.state == States.goal_tracking and self.chassis.on_vision_target()) and self.chassis.on_range_target():# or ((time.time() - self.start_time) > 12): #self.chassis.distance_pid.onTarget():
             # We made it to the target point, so fire away!
-            self.shooter.change_state(shooter.States.shooting)
-            self.intake.state = intake.States.fire
+            self.boulder_automation.arm()
+            self.boulder_automation.shoot_boulder()
             self.state = States.firing
             self.chassis.range_setpoint = 0.0
             self.chassis.track_vision = False
             self.chassis.distance_pid.reset()
         if self.state == States.firing and self.shooter.state == shooter.States.shooting:
-            self.shooter.change_state(shooter.States.shooting)
-            self.intake.state = intake.States.fire
+            self.boulder_automation.arm()
+            self.boulder_automation.shoot_boulder()
             self.chassis.field_oriented = True
 
 class LowBarCentreTower(ObstacleHighGoal):
