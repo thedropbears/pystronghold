@@ -2,41 +2,32 @@ from wpilib import CANTalon
 
 from components.chassis import Chassis
 
-import logging
-
-class States:
-    off = 0
-    shooting = 1
-    backdriving = 2
-    backdrive_recovery = 10
-
 class Shooter:
-#closed-loop controls for shooting mechanism
+# closed-loop controls for shooting mechanism
 
     shooter_motor = CANTalon
     chassis = Chassis
     shoot_encoder_cpr = 4096.0
     max_speed = 36000.0
-    #shoot_percentage = 0.99
+    # shoot_percentage = 0.99
     shoot_percentage = 0.67
 
     def __init__(self):
         self._changed_state = True
         self.initialised = False
-        self.state = States.off
         self._speed = 0.0
 
     def up_to_speed(self):
-        return abs(self.shooter_motor.getClosedLoopError())<= 0.02*(self.max_speed) and self.shooter_motor.getSetpoint() != 0.0
+        return abs(self.shooter_motor.getClosedLoopError()) <= 0.02 * (self.max_speed) and self.shooter_motor.getSetpoint() != 0.0
 
-    def start(self):
-        self.shooter_motor.set(-Shooter.max_speed*self.shoot_percentage)
+    def shoot(self):
+        self.shooter_motor.set(-Shooter.max_speed * self.shoot_percentage)
 
     def backdrive(self):
-        self.shooter_motor.set(Shooter.max_speed*0.01)
+        self.shooter_motor.set(Shooter.max_speed * 0.01)
 
     def backdrive_recovery(self):
-        self.shooter_motor.set(Shooter.max_speed*1.0)
+        self.shooter_motor.set(Shooter.max_speed * 1.0)
 
     def stop(self):
         self.shooter_motor.set(0.0)

@@ -1,4 +1,4 @@
-from components.shooter import Shooter, States
+from components.shooter import Shooter
 from unittest.mock import MagicMock
 from wpilib import CANTalon
 """
