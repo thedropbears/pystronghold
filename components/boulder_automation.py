@@ -73,3 +73,8 @@ class BoulderAutomation(StateMachine):
     @timed_state(duration=0.3)
     def firing(self):
         self.intake.intake()
+
+    @state(must_finish=False)
+    def backdrive_manual(self):
+        self.intake.backdrive_slow()
+        self.shooter.backdrive_recovery()

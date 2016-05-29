@@ -229,7 +229,9 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.gamepad.getRawButton(3):
-                self.intake.backdrive_slow()
+                self.boulder_automation.engage("backdrive_manual")
+            elif self.boulder_automation.current_state == "backdrive_manual":
+                self.boulder_automation.done()
         except:
             self.onException()
 
@@ -247,12 +249,6 @@ class StrongholdRobot(magicbot.MagicRobot):
         except:
             self.onException()
 
-        try:
-            if self.gamepad.getRawButton(4):
-                self.shooter.backdrive_recovery()
-        except:
-            self.onException()
-        
         try:
             if self.joystick.getRawButton(12):
                 self.joystick_rate = 0.6

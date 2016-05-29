@@ -39,7 +39,6 @@ class Intake:
         """ Backdrive the intake at 0.5 speed """
         self.speed_mode()
         self.intake_motor.set(-0.5*Intake.max_speed)
-        pass
 
     def backdrive_pin(self):
         """ Used when pinning the ball """
@@ -65,7 +64,7 @@ class Intake:
         return self.intake_motor.getClosedLoopError() > Intake.max_speed*0.1 and self.acceleration < 0.0 and self.current_rate > 0.0
 
     def slowing(self):
-        return velocity < 0.0 and acceleration > 0.0
+        return self.velocity < 0.0 and self.acceleration > 0.0
 
     def pinned(self):
         return self.intake_motor.getClosedLoopError() < 20
