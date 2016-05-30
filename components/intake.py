@@ -67,7 +67,7 @@ class Intake:
         return self.velocity < 0.0 and self.acceleration > 0.0
 
     def pinned(self):
-        return self.intake_motor.getClosedLoopError() < 20
+        return self.intake_motor.getClosedLoopError() < 20 and abs(self.intake_motor.get()) > abs(self.intake_motor.getSetpoint()) * 0.5
 
     def speed_mode(self):
         self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)

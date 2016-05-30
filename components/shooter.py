@@ -18,7 +18,8 @@ class Shooter:
         self._speed = 0.0
 
     def up_to_speed(self):
-        return abs(self.shooter_motor.getClosedLoopError()) <= 0.02 * (self.max_speed) and self.shooter_motor.getSetpoint() != 0.0
+        return (abs(self.shooter_motor.getClosedLoopError()) <= 0.02 * (self.max_speed) and self.shooter_motor.getSetpoint() != 0.0
+               and abs(self.shooter_motor.get()) > abs(self.shooter_motor.getSetpoint()*0.5))
 
     def shoot(self):
         self.shooter_motor.set(-Shooter.max_speed * self.shoot_percentage)

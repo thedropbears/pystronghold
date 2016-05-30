@@ -1,6 +1,7 @@
 from magicbot import StateMachine, state, timed_state
 from components.shooter import Shooter
 from components.intake import Intake
+import logging
 
 class BoulderAutomation(StateMachine):
     intake = Intake
@@ -10,7 +11,7 @@ class BoulderAutomation(StateMachine):
         super().__init__()
 
     def toggle_intake_boulder(self):
-        if not self.is_executing():
+        if not self.is_executing:
             self.engage("pre_intake")
         else:
             self.done()
@@ -19,7 +20,7 @@ class BoulderAutomation(StateMachine):
         self.engage("pre_intake")
 
     def toggle_shoot_boulder(self):
-        if not self.is_executing():
+        if not self.is_executing:
             self.engage("pre_fire")
         else:
             self.done()
@@ -39,40 +40,43 @@ class BoulderAutomation(StateMachine):
         if self.intake.up_to_speed():
             self.next_state("intaking")
 
-    @state()
+    @state(must_finish=True)
     def intaking(self):
         if self.intake.ball_detected():
             self.next_state("intaking_contact")
 
-    @timed_state(duration=0.3, next_state="pinning")
-    def intaking_contact(self):
+    @state(must_finish=True)
+    def intaking_contact(self, state_tm):
         self.shooter.backdrive()
+        if state_tm > 0.3:
+            self.next_state("pinning")
 
-    @state()
+    @state(must_finish=True)
     def pinning(self):
         self.shooter.backdrive()
         self.intake.backdrive_pin()
         if self.intake.slowing():
-            self.intake.position_mode()
-            self.intake_motor.set(-1000)
+            self.intake.jam()
             self.next_state("pinned")
 
-    @state()
+    @state(must_finish=True)
     def pinned(self):
-        self.shooter.off()
+        self.shooter.stop()
         if self.intake.pinned():
             self.done()
             self.intake.write_log = True
 
-    @state()
+    @state(must_finish=True)
     def pre_fire(self):
         self.shooter.shoot()
         if self.shooter.up_to_speed():
             self.next_state("firing")
 
-    @timed_state(duration=0.3)
-    def firing(self):
+    @state(must_finish=True)
+    def firing(self, state_tm):
         self.intake.intake()
+        if state_tm > 0.5:
+            self.done()
 
     @state(must_finish=False)
     def backdrive_manual(self):
