@@ -45,7 +45,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         Kp = Ku * 0.3
         self.heading_hold_pid = wpilib.PIDController(0.8,
                                                      0.0,
-                                                     0.3, #2.0 * Kp / Tu * 0.1, 1.0 * Kp * Tu / 20.0 * 0,
+                                                     1.5, #2.0 * Kp / Tu * 0.1, 1.0 * Kp * Tu / 20.0 * 0,
                                                      self.bno055, self.heading_hold_pid_output)
         """self.heading_hold_pid = wpilib.PIDController(0.6,
                                                      2.0 * Kp / Tu * 0.1,
