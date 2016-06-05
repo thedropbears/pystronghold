@@ -8,7 +8,6 @@ from .bno055 import BNO055
 from .vision import Vision
 from .range_finder import RangeFinder
 
-import logging
 
 class BlankPIDOutput(PIDOutput):
     def __init__(self):
@@ -17,8 +16,8 @@ class BlankPIDOutput(PIDOutput):
     def pidWrite(self, output):
         self.output = output
 
-class Chassis:
 
+class Chassis:
     correct_range = 1.65 # m
 
     length = 498.0  # mm
@@ -96,7 +95,8 @@ class Chassis:
         self.distance_pid_heading = 0.0  # Relative to field
         self.distance_pid_output = BlankPIDOutput()
         # TODO tune the distance PID values
-        self.distance_pid = PIDController(1.0, 0.02, 0.0, self, self.distance_pid_output)
+        self.distance_pid = PIDController(1.0, 0.02, 0.0,
+                                          self, self.distance_pid_output)
         self.distance_pid.setAbsoluteTolerance(0.05)
         self.distance_pid.setToleranceBuffer(5)
         self.distance_pid.setContinuous(False)
@@ -147,9 +147,9 @@ class Chassis:
             module.zero_distance()
 
     def field_displace(self, x, y):
-        '''Use the distance PID to displace the robot by x,y in field reference frame.'''
+        '''Use the distance PID to displace the robot by x,y
+        in field reference frame.'''
         d = math.sqrt((x ** 2 + y ** 2))
-        logging.getLogger("chassis").info("XYD: %f %f %f" % (x,y,d))
         fx, fy = field_orient(x, y, self.bno055.getHeading())
         self.distance_pid_heading = math.atan2(fy, fx)
         self.distance_pid.disable()
@@ -167,10 +167,9 @@ class Chassis:
     @property
     def distance(self):
         distances = 0.0
-        #distances = (abs(self._modules['c'].distance) + abs(self._modules['d'].distance))
         for module in self._modules.values():
             distances += abs(module.distance) / module.drive_counts_per_metre
-        return distances / 4.0# 2.0 / self._modules['c'].drive_counts_per_metre
+        return distances / 4.0
 
     def drive(self, vX, vY, vZ, absolute=False):
         motor_vectors = {}
@@ -207,14 +206,12 @@ class Chassis:
 
         # Are we in setpoint displacement mode?
         if self.distance_pid.isEnable():
-            if self.distance_pid.onTarget():# or self.reset_distance_pid:
+            if self.distance_pid.onTarget():
                 if self.pid_counter > 10:
                     self.reset_distance_pid = False
-                    logging.getLogger("chassis").info("Resetting distance, current rf: " + str(self.range_finder.pidGet()))
                     # Let's see if we need to move further
                     x = y = 0.0
                     if self.range_setpoint:
-                        logging.getLogger("chassis").info("RANGE SETPOINT: " + str(self.range_setpoint))
                         x = self.range_finder.pidGet() - self.range_setpoint
                         if x > 0.5:
                             x = 0.5
@@ -232,7 +229,6 @@ class Chassis:
                     self.distance_pid.setSetpoint(math.sqrt(x**2+y**2))
                     self.distance_pid.reset()
                     self.distance_pid.enable()
-                    #logging.getLogger("chassis").info("DIST PID ON TARGET: " + str(self.distance_pid.onTarget()))
                     self.pid_counter = 0
                 else:
                     self.pid_counter += 1
@@ -240,8 +236,6 @@ class Chassis:
             # Keep driving
             self.vx = math.cos(self.distance_pid_heading) * self.distance_pid_output.output
             self.vy = math.sin(self.distance_pid_heading) * self.distance_pid_output.output
-            #logging.getLogger("chassis").info("DIST PID OUPTUT: " + str(self.distance_pid_output.output) + " VX: " + str(self.vx) + " VY: " + str(self.vy))
-            #logging.getLogger("chassis").info("DIST HEADING: " + str(self.distance_pid_heading) + " DIST RANGE: " + str(self.distance_pid.getSetpoint()))
         else:
             self.vx = self.inputs[0] * self.inputs[3]  # multiply by throttle
             self.vy = self.inputs[1] * self.inputs[3]  # multiply by throttle
@@ -260,10 +254,12 @@ class Chassis:
                 self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
                 self.vz = self.inputs[2] * self.inputs[3]  # multiply by throttle
 
-
         if self.lock_wheels:
-            for name, params, module in zip(Chassis.module_params.items(), self._modules):
-                direction = constrain_angle(math.atan2(params['vz']['y'], params['vz']['x']) + math.pi/2.0)
+            for _, params, module in zip(Chassis.module_params.items(),
+                                         self._modules):
+                direction = constrain_angle(math.atan2(params['vz']['y'],
+                                                       params['vz']['x']) +
+                                            math.pi / 2.0)
                 module.steer(direction, 0.0)
         else:
             self.drive(self.vx, self.vy, self.vz)
@@ -278,7 +274,9 @@ class Chassis:
         return abs(self.range_finder.getDistance() - self.range_setpoint) < 0.1
 
     def on_vision_target(self):
-        return self.vision.no_vision_counter == 0.0 and abs(self.vision.pidGet()) < 0.035
+        return (self.vision.no_vision_counter == 0.0 and
+                abs(self.vision.pidGet()) < 0.035)
+
 
 class SwerveModule():
     def __init__(self, drive, steer,
@@ -309,13 +307,15 @@ class SwerveModule():
             self._steer.changeControlMode(CANTalon.ControlMode.Position)
             self._steer.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self._steer.setPID(6.0, 0.0, 0.0)  # PID values for rel
-            self.counts_per_radian = 497.0 * (40.0 / 48.0) * 4.0 / (2.0 * math.pi)
+            self.counts_per_radian = (497.0 * (40.0 / 48.0) * 4.0 /
+                                      (2.0 * math.pi))
             self._offset = self.counts_per_radian*2.0*math.pi/4.0
             self._steer.setPosition(0.0)
 
         if self.drive_encoder:
             self.drive_counts_per_rev = 80*6.67
-            self.drive_counts_per_metre = self.drive_counts_per_rev / (math.pi * 0.1016)
+            self.drive_counts_per_metre = (self.drive_counts_per_rev /
+                                           (math.pi * 0.1016))
             self.drive_max_speed = 570
             self._drive.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self.changeDriveControlMode(CANTalon.ControlMode.Speed)
@@ -366,7 +366,8 @@ class SwerveModule():
             # Force the modules to the direction specified - don't
             # go to the closest one and reverse.
             delta = constrain_angle(direction - self.direction)  # rescale to +/-pi
-            self._steer.set((self.direction + delta) * self.counts_per_radian + self._offset)
+            self._steer.set((self.direction + delta) *
+                            self.counts_per_radian + self._offset)
             self._drive.set(0.0)
             return
 
@@ -382,12 +383,15 @@ class SwerveModule():
                 self._drive.set(speed*self.drive_max_speed)
             else:
                 self._drive.set(-speed*self.drive_max_speed)
-            self._steer.set((self.direction + delta) * self.counts_per_radian + self._offset)
+            self._steer.set((self.direction + delta) *
+                            self.counts_per_radian + self._offset)
         else:
             self._drive.set(0.0)
 
+
 def constrain_angle(angle):
     return math.atan2(math.sin(angle), math.cos(angle))
+
 
 def min_angular_displacement(current, target):
     target = constrain_angle(target)
@@ -399,6 +403,7 @@ def min_angular_displacement(current, target):
     if abs(diff) < abs(opp_diff):
         return diff
     return opp_diff
+
 
 def field_orient(vx, vy, heading):
     oriented_vx = vx * math.cos(heading) + vy * math.sin(heading)

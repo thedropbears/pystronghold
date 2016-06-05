@@ -96,16 +96,18 @@ class StrongholdRobot(magicbot.MagicRobot):
         for key, distance in zip(self.chassis._modules.keys(), distances):
             self.sd.putDouble("encoder_motor_"+key, distance)
 
-
     def disabledInit(self):
-        pass
+        self.boulder_automation.done()
 
     def disabledPeriodic(self):
         """This function is called periodically when disabled."""
         self.putData()
 
     def teleopInit(self):
-        pass
+        self.boulder_automation.done()
+
+    def autoInit(self):
+        self.boulder_automation.done()
 
     def teleopPeriodic(self):
         """This function is called periodically during operator control."""

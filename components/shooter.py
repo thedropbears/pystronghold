@@ -2,8 +2,9 @@ from wpilib import CANTalon
 
 from components.chassis import Chassis
 
+
 class Shooter:
-# closed-loop controls for shooting mechanism
+    # closed-loop controls for shooting mechanism
 
     shooter_motor = CANTalon
     chassis = Chassis
@@ -18,8 +19,10 @@ class Shooter:
         self._speed = 0.0
 
     def up_to_speed(self):
-        return (abs(self.shooter_motor.getClosedLoopError()) <= 0.02 * (self.max_speed) and self.shooter_motor.getSetpoint() != 0.0
-               and abs(self.shooter_motor.get()) > abs(self.shooter_motor.getSetpoint()*0.5))
+        return (abs(self.shooter_motor.getClosedLoopError()) <= 0.02 * (self.max_speed)
+                and self.shooter_motor.getSetpoint() != 0.0
+                and abs(self.shooter_motor.get()) > abs(self.shooter_motor.getSetpoint() * 0.5)
+                )
 
     def shoot(self):
         self.shooter_motor.set(-Shooter.max_speed * self.shoot_percentage)
@@ -44,6 +47,6 @@ class Shooter:
             self.shooter_motor.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
             self.shooter_motor.changeControlMode(CANTalon.ControlMode.Speed)
             self.shooter_motor.reverseSensor(True)
-            self.shooter_motor.setPID(0.075, 0.00075, 0, 1023.0 / Shooter.max_speed, izone=3000)
+            self.shooter_motor.setPID(0.075, 0.00075, 0,
+                                      1023.0 / Shooter.max_speed, izone=3000)
             self.initialised = True
-

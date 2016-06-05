@@ -1,7 +1,7 @@
-from magicbot import StateMachine, state, timed_state
+from magicbot.state_machine import StateMachine, state
 from components.shooter import Shooter
 from components.intake import Intake
-import logging
+
 
 class BoulderAutomation(StateMachine):
     intake = Intake

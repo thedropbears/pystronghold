@@ -6,6 +6,7 @@ import math
 
 import logging
 
+
 class BNO055(GyroBase):
     """Class to read euler values in radians from the I2C bus"""
 
@@ -299,5 +300,3 @@ class BNO055(GyroBase):
     ACCEL_RADIUS_MSB_ADDR = 0X68
     MAG_RADIUS_LSB_ADDR = 0X69
     MAG_RADIUS_MSB_ADDR = 0X6A
-
-

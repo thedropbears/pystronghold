@@ -1,17 +1,12 @@
 
 from networktables import NetworkTable
-from wpilib import CANTalon, PowerDistributionPanel
+from wpilib import CANTalon
 
-from components import shooter
-
-import csv, time
-
-import logging
 from _collections import deque
+
 
 class Intake:
     intake_motor = CANTalon
-    shooter = shooter.Shooter
 
     max_speed = 9000.0
 
@@ -58,16 +53,19 @@ class Intake:
 
     def up_to_speed(self):
         """ Is the intake up to speed yet? """
-        return self.intake_motor.getSetpoint() == 0.7*Intake.max_speed and self.intake_motor.getClosedLoopError() < Intake.max_speed*0.05
+        return (self.intake_motor.getSetpoint() == 0.7 * Intake.max_speed
+                and self.intake_motor.getClosedLoopError() < Intake.max_speed * 0.05)
 
     def ball_detected(self):
-        return self.intake_motor.getClosedLoopError() > Intake.max_speed*0.1 and self.acceleration < 0.0 and self.current_rate > 0.0
+        return (self.intake_motor.getClosedLoopError() > Intake.max_speed * 0.1
+                and self.acceleration < 0.0 and self.current_rate > 0.0)
 
     def slowing(self):
         return self.velocity < 0.0 and self.acceleration > 0.0
 
     def pinned(self):
-        return self.intake_motor.getClosedLoopError() < 20 and abs(self.intake_motor.get()) > abs(self.intake_motor.getSetpoint()) * 0.5
+        return (self.intake_motor.getClosedLoopError() < 20
+                and abs(self.intake_motor.get()) > abs(self.intake_motor.getSetpoint()) * 0.5)
 
     def speed_mode(self):
         self.intake_motor.changeControlMode(CANTalon.ControlMode.Speed)
@@ -101,16 +99,16 @@ class Intake:
         prev_current_avg = sum(self.current_deque)/maxlen
         self.current_deque.append(self.intake_motor.getOutputCurrent())
         self.current_avg = sum(self.current_deque) / maxlen
-        self.current_rate = self.current_avg - prev_current_avg#self.current_deque[maxlen-1]-self.current_deque[maxlen-2]
+        self.current_rate = self.current_avg - prev_current_avg
         self.velocity = self.intake_motor.get()
         self.acceleration = self.velocity - self.previous_velocity
 
         self.sd.putDouble("intake_current_rate", self.current_rate)
         self.sd.putDouble("intake_current_avg", self.current_avg)
-        self.sd.putDouble("intake_closed_loop_error", self.intake_motor.getClosedLoopError())
+        self.sd.putDouble("intake_closed_loop_error",
+                          self.intake_motor.getClosedLoopError())
         self.sd.putDouble("intake_acceleration", self.acceleration)
         self.sd.putDouble("intake_velocity", self.velocity)
-
 
         self.log_queue.append(self.current_deque[maxlen-1])
         self.velocity_queue.append(self.intake_motor.get())

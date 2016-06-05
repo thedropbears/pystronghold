@@ -2,6 +2,7 @@ from networktables import NetworkTable
 from wpilib.interfaces import PIDSource
 import hal
 
+
 class Vision:
     def __init__(self):
         # mjpg-streamer isn't setting parameters properly yet, so do it here
@@ -18,11 +19,12 @@ class Vision:
     def valueChanged(self, table, key, value, isNew):
         self._values[key] = float(value)
         if key == 'time':
-            # The time key is updated last, so let's update our smoothed average
+            # The time key is updated last,
+            # so let's update our smoothed average
             alpha = 0.3
             if self._values['w'] > 0.0:
-                self._smoothed_pidget = (alpha * self._values['x']
-                                         + (1.0 - alpha) * self._smoothed_pidget)
+                self._smoothed_pidget = (alpha * self._values['x'] +
+                                         (1.0 - alpha) * self._smoothed_pidget)
                 self.no_vision_counter = 0
             else:
                 self.no_vision_counter += 1

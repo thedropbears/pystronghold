@@ -1,6 +1,7 @@
 
 from wpilib import CANTalon
 
+
 class Defeater:
 
     defeater_motor = CANTalon
