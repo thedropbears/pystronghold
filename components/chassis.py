@@ -232,7 +232,7 @@ class Chassis:
                     self.distance_pid.setSetpoint(math.sqrt(x**2+y**2))
                     self.distance_pid.reset()
                     self.distance_pid.enable()
-                    logging.getLogger("chassis").info("DIST PID ON TARGET: " + str(self.distance_pid.onTarget()))
+                    #logging.getLogger("chassis").info("DIST PID ON TARGET: " + str(self.distance_pid.onTarget()))
                     self.pid_counter = 0
                 else:
                     self.pid_counter += 1
@@ -240,7 +240,7 @@ class Chassis:
             # Keep driving
             self.vx = math.cos(self.distance_pid_heading) * self.distance_pid_output.output
             self.vy = math.sin(self.distance_pid_heading) * self.distance_pid_output.output
-            logging.getLogger("chassis").info("DIST PID OUPTUT: " + str(self.distance_pid_output.output) + " VX: " + str(self.vx) + " VY: " + str(self.vy))
+            #logging.getLogger("chassis").info("DIST PID OUPTUT: " + str(self.distance_pid_output.output) + " VX: " + str(self.vx) + " VY: " + str(self.vy))
             #logging.getLogger("chassis").info("DIST HEADING: " + str(self.distance_pid_heading) + " DIST RANGE: " + str(self.distance_pid.getSetpoint()))
         else:
             self.vx = self.inputs[0] * self.inputs[3]  # multiply by throttle

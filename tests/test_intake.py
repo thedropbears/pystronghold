@@ -1,9 +1,9 @@
-from components.intake import Intake, States
+"""from components.intake import Intake
 from unittest.mock import MagicMock
 
 
 
-"""def test_state_transition():
+def test_state_transition():
     intake = Intake()
     intake.intake_motor = MagicMock()
     intake.shooter = MagicMock()
@@ -43,7 +43,7 @@ from unittest.mock import MagicMock
     intake.state = States.fire
     intake.execute()
     assert intake._speed != 0.0
-    assert intake.intake_motor.setVoltageRampRate.called"""
+    assert intake.intake_motor.setVoltageRampRate.called
 
 def test_toggle():
     intake = Intake()
@@ -51,3 +51,4 @@ def test_toggle():
     assert intake.state == States.intaking_free
     intake.toggle()
     assert intake.state == States.no_ball
+"""
