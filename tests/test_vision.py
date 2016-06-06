@@ -1,4 +1,6 @@
 import unittest
+from networktables import NetworkTable
+from components.vision import Vision
 
 def find_target(filename, result, desired, deltas):
     message = filename + " - %s\nExpected: %s +/- %s\nReceived: %s"
@@ -27,3 +29,20 @@ except ImportError as e:
     @unittest.skip('Missing dependency - ' + str(e))
     def test_fail():
         pass
+
+
+def test_nt_update():
+    v = Vision()
+    nt = NetworkTable.getTable('vision')
+    nt.putNumber('x', 0.5)
+    assert v._values['x'] == 0.5
+    # Only updates to time should update the averaged values
+    assert v.pidGet() == 0.0
+    nt.putNumber('time', 1234)
+    # No change if width is zero
+    assert v.pidGet() == 0.0
+    assert v.no_vision_counter == 1
+    nt.putNumber('w', 0.7)
+    nt.putNumber('time', 1235)
+    assert v.pidGet() != 0.0
+    assert v.no_vision_counter == 0
