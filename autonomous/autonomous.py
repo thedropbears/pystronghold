@@ -1,4 +1,5 @@
 
+from magicbot.state_machine import AutonomousStateMachine, state
 from components.chassis import Chassis, constrain_angle
 from components import shooter
 from components import intake
@@ -9,20 +10,9 @@ from wpilib import CANTalon
 import logging
 
 import math
-import time
 
 
-class States:
-    init = 0
-    through_obstacle = 1
-    strafing = 2
-    goal_tracking = 3
-    firing = 4
-    spinning = 5
-    range_finding = 6
-
-
-class ObstacleHighGoal:
+class ObstacleHighGoal(AutonomousStateMachine):
     chassis = Chassis
     shooter = shooter.Shooter
     intake = intake.Intake
@@ -32,6 +22,7 @@ class ObstacleHighGoal:
     boulder_automation = BoulderAutomation
 
     def __init__(self, delta_x, delta_y, delta_heading=0.0, portcullis=False):
+        super().__init__()
         self.straight = 4.1
         self.delta_x = delta_x
         self.delta_y = delta_y
@@ -45,6 +36,7 @@ class ObstacleHighGoal:
 
     def on_enable(self):
         """Set up the autonomous routine"""
+        super().on_enable()
         # Reset the IMU
         self.bno055.resetHeading()
         self.chassis.set_heading_setpoint(self.bno055.getAngle())
@@ -52,68 +44,64 @@ class ObstacleHighGoal:
         self.chassis.heading_hold = True
         self.chassis.field_oriented = True
         self.chassis.drive(1, 0, 0, 0.0001)
-        self.state = States.init
         self.boulder_automation.done()
         self.intake.stop()
         self.chassis.zero_encoders()
-        self.vision_counts = 0
-        self.timeout = 0
-        self.start_time = time.time()
 
-    def on_disable(self):
+    def done(self):
         """Cleanup after auto routine"""
+        super().done()
         self.chassis.range_setpoint = 0.0
         self.chassis.track_vision = False
-        self.boulder_automation.done()
+        self.chassis.distance_pid.reset()
+        self.chassis.field_oriented = True
 
-    def on_iteration(self, tm):
-        '''Drive forward the same amount, then move by delta_x and delta_y
-        to the position where the vision and range finder take over.
-        Final change in heading is specified too.'''
-        rf = self.chassis.range_finder.pidGet()
-        #self.logger.info("VISION OUTPUT: " + str(self.chassis.vision.pidGet()) + " COUNTER: " + str(self.chassis.vision.no_vision_counter))
-        if self.state == States.init:
-            if self.portcullis:
-                self.defeater_motor.set(-0.5)
-            if not self.chassis.onTarget():
-                return
-            self.chassis.field_displace(self.straight, 0.0)
-            self.state = States.through_obstacle
-            self.chassis.distance_pid.setOutputRange(-0.55, 0.55)
-            self.logger.info("SETPOINT: " + str(self.chassis.distance_pid.getSetpoint()))
-        if self.state == States.through_obstacle and self.chassis.distance_pid.onTarget():
+    '''Drive forward the same amount, then move by delta_x and delta_y
+    to the position where the vision and range finder take over.
+    Final change in heading is specified too.'''
+    @state(first=True)
+    def deploy_defeater(self):
+        if self.portcullis:
+            self.defeater_motor.set(-0.5)
+        self.chassis.distance_pid.setOutputRange(-0.55, 0.55)
+        self.chassis.field_displace(self.straight, 0.0)
+        self.engage('breach_defence')
+
+    @state(must_finish=True)
+    def breach_defence(self):
+        if self.chassis.distance_pid.onTarget():
+            self.chassis.distance_pid.disable()
             # Let the distance PID do its magic...
             # Turn off the distance PID, and spin to the right angle
-            self.logger.info("Obstacle finished, distance: " + str(self.chassis.distance))
-            self.chassis.distance_pid.disable()
-            self.chassis.heading_hold_pid.setSetpoint(constrain_angle(self.chassis.heading_hold_pid.getSetpoint() + self.delta_heading))
+            self.chassis.heading_hold_pid.setSetpoint(constrain_angle(
+                    self.chassis.heading_hold_pid.getSetpoint() +
+                    self.delta_heading)
+                )
             self.defeater_motor.set(0.3)
-            self.state = States.spinning
-        if self.state == States.spinning and self.chassis.heading_hold_pid.onTarget():
-            # Turn on the distance PID for the next displacement
+            self.engage('spinning')
+
+    @state(must_finish=True)
+    def spinning(self):
+        if self.chassis.heading_hold_pid.onTarget():
             self.chassis.field_displace(self.delta_x, self.delta_y)
-            self.state = States.strafing
-        if self.state == States.strafing and self.chassis.distance_pid.onTarget():
+            self.engage('strafing')
+
+    @state(must_finish=True)
+    def strafing(self):
+        if self.chassis.distance_pid.onTarget():
             # Dead reckoning is done - engage the rangefinder
             # Leave the distance PID running as it will read the rf for us
             self.chassis.distance_pid.setOutputRange(-0.4, 0.4)
-            self.logger.info("Strafing finished, distance: " + str(self.chassis.distance))
-            self.state = States.range_finding
             self.chassis.distance_pid.reset()
             self.chassis.zero_encoders()
             self.chassis.range_setpoint = self.chassis.correct_range  # m
             self.chassis.distance_pid.reset()
             self.chassis.distance_pid.enable()
-            self.logger.info(self.chassis.distance_pid.onTarget())
-            #TODO: GET RID OF THIS STUFF IF YOU WANT TO RANGE
-            """self.shooter.change_state(shooter.States.shooting)
-            self.intake.state = intake.States.fire
-            self.state = States.firing
-            self.chassis.distance_pid.reset()
-            self.chassis.distance_pid.setSetpoint(0.0)
-            self.chassis.range_setpoint = 0.0
-            self.chassis.track_vision = False"""
-        if self.state == States.range_finding and self.chassis.on_range_target(): #self.chassis.distance_pid.onTarget():
+            self.engage('range_finding')
+
+    @state(must_finish=True)
+    def range_finding(self):
+        if self.chassis.on_range_target():
             # Range is good, now turn on the vision tracking
             self.chassis.track_vision = True
             self.chassis.distance_pid.reset()
@@ -121,30 +109,16 @@ class ObstacleHighGoal:
             self.chassis.zero_encoders()
             self.chassis.distance_pid.reset()
             self.chassis.distance_pid.enable()
-            self.state = States.goal_tracking
-            self.logger.info("On range, distance: " + str(self.chassis.distance))
-            self.boulder_automation.disarm()
-            self.boulder_automation.shoot_boulder()
-            #TODO: GET RID OF THIS STUFF IF YOU WANT TO VISION 
-            """self.shooter.change_state(shooter.States.shooting)
-            self.intake.state = intake.States.fire
-            self.state = States.firing
-            self.chassis.distance_pid.reset()
-            self.chassis.distance_pid.setSetpoint(0.0)
-            self.chassis.range_setpoint = 0.0
-            self.chassis.track_vision = False"""
-        if (self.state == States.goal_tracking and self.chassis.on_vision_target()) and self.chassis.on_range_target():# or ((time.time() - self.start_time) > 12): #self.chassis.distance_pid.onTarget():
+            self.shooter.shoot()
+            self.engage('visual_tracking')
+
+    @state(must_finish=True)
+    def visual_tracking(self):
+        if self.chassis.on_vision_target() and self.chassis.on_range_target():
             # We made it to the target point, so fire away!
-            self.boulder_automation.arm()
             self.boulder_automation.shoot_boulder()
-            self.state = States.firing
-            self.chassis.range_setpoint = 0.0
-            self.chassis.track_vision = False
-            self.chassis.distance_pid.reset()
-        if self.state == States.firing and self.shooter.state == shooter.States.shooting:
-            self.boulder_automation.arm()
-            self.boulder_automation.shoot_boulder()
-            self.chassis.field_oriented = True
+            self.done()
+
 
 class LowBarCentreTower(ObstacleHighGoal):
     MODE_NAME = "Low bar, CENTRE tower"
@@ -155,6 +129,7 @@ class LowBarCentreTower(ObstacleHighGoal):
         #super().__init__(2.0, -1.8, 0.0)
         #should be correct for real field
         super().__init__(1.0, -3.3, 0.0)
+
 
 class LowBarCentreTowerTest(ObstacleHighGoal):
     MODE_NAME = "TEST MODE: Low bar, CENTRE tower"
@@ -170,6 +145,7 @@ class LowBarLeftTower(ObstacleHighGoal):
 
     def __init__(self):
         super().__init__(2.7, -2.2, -math.pi / 3.0)
+
 
 class Portcullis2CentreTower(ObstacleHighGoal):
     MODE_NAME = "Portcullis position 2, CENTRE tower"
@@ -242,18 +218,17 @@ class Portcullis5RightTower(ObstacleHighGoal):
         # Barker field: delta_x = 2.4, delta_y = -3.8
         super().__init__(2.0, -5.0+4.0*1.35, math.pi / 3.0, True)
 
-class ApproachObstacle:
+
+class ApproachObstacle(AutonomousStateMachine):
     MODE_NAME = "Approach Obstacle"
     chassis = Chassis
 
-    def __init__(self):
-        pass
-
-    def on_enable(self):
+    @state(first=True)
+    def drive_forward(self):
         self.chassis.field_displace(1.1, 0.0)
+        self.engage('driving_forward')
 
-    def on_iteration(self, tm):
-        pass
-
-    def on_disable(self):
-        pass
+    @state(must_finish=True)
+    def driving_forward(self):
+        if self.chassis.distance_pid.onTarget():
+            self.done()
