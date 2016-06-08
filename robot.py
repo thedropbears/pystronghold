@@ -61,7 +61,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.joystick_rate = 0.3
 
     def putData(self):
-        self.sd.putDouble("range_finder", self.range_finder.getDistance())
+        self.sd.putDouble("range_finder", self.range_finder.pidGet())
         self.sd.putDouble("gyro", self.bno055.getHeading())
         self.sd.putDouble("vision_pid_get", self.vision.pidGet())
         self.sd.putDouble("vision_x", self.vision._values['x'])

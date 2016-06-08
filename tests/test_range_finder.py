@@ -10,4 +10,4 @@ def test_range_finder_syntax():
     rf = RangeFinder(0)
     rf.range_finder_counter = MagicMock()
     pid_value = rf.pidGet()
-    dist = rf.getDistance()
+    dist = rf._getDistance()

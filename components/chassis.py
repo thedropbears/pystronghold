@@ -23,6 +23,9 @@ class Chassis:
     length = 498.0  # mm
     width = 600.0  # mm
 
+    vision_scale_factor = 0.3  # units of m/(vision unit)
+    distance_pid_abs_error = 0.05  # metres
+
     motor_dist = math.sqrt((width / 2) ** 2 + (length / 2) ** 2)  # distance of motors from the center of the robot
 
     #                    x component                   y component
@@ -97,10 +100,10 @@ class Chassis:
         # TODO tune the distance PID values
         self.distance_pid = PIDController(1.0, 0.02, 0.0,
                                           self, self.distance_pid_output)
-        self.distance_pid.setAbsoluteTolerance(0.05)
+        self.distance_pid.setAbsoluteTolerance(self.distance_pid_abs_error)
         self.distance_pid.setToleranceBuffer(5)
         self.distance_pid.setContinuous(False)
-        self.distance_pid.setInputRange(-10.0, 10.0)  # TODO check that this range is good for us
+        self.distance_pid.setInputRange(-5.0, 5.0)
         self.distance_pid.setOutputRange(-0.4, 0.4)
         self.distance_pid.setSetpoint(0.0)
         self.reset_distance_pid = False
@@ -211,18 +214,18 @@ class Chassis:
                     self.reset_distance_pid = False
                     # Let's see if we need to move further
                     x = y = 0.0
-                    if self.range_setpoint:
+                    if self.range_setpoint and not self.on_range_target():
                         x = self.range_finder.pidGet() - self.range_setpoint
                         if x > 0.5:
                             x = 0.5
                         elif x < -0.5:
                             x = -0.5
-                    if self.track_vision:
-                        y = self.vision.pidGet()*0.3#*self.range_finder.pidGet()*0.3  # TODO we need proper scaling factors here
-                        if y > 0.3:
-                            y = 0.3
-                        elif y < -0.3:
-                            y = -0.3
+                    if self.track_vision and not self.on_vision_target():
+                        y = self.vision.pidGet() * self.vision_scale_factor
+                        if y > self.vision_scale_factor:
+                            y = self.vision_scale_factor
+                        elif y < -self.vision_scale_factor:
+                            y = -self.vision_scale_factor
                     self.distance_pid.disable()
                     self.zero_encoders()
                     self.distance_pid_heading = constrain_angle(math.atan2(y, x)+self.bno055.getAngle())
@@ -271,11 +274,11 @@ class Chassis:
         self.heading_hold_pid.setSetpoint(constrain_angle(setpoint))
 
     def on_range_target(self):
-        return abs(self.range_finder.getDistance() - self.range_setpoint) < 0.1
+        return abs(self.range_finder.pidGet() - self.range_setpoint) < self.distance_pid_abs_error * 2.0
 
     def on_vision_target(self):
         return (self.vision.no_vision_counter == 0.0 and
-                abs(self.vision.pidGet()) < 0.035)
+                abs(self.vision.pidGet() * self.vision_scale_factor) < self.distance_pid_abs_error * 2.0)
 
 
 class SwerveModule():
