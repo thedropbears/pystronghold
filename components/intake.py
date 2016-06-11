@@ -25,11 +25,6 @@ class Intake:
         self.speed_mode()
         self.intake_motor.set(0.7*Intake.max_speed)
 
-    def backdrive(self):
-        """ Backdrive the intake """
-        self.speed_mode()
-        pass
-
     def backdrive_slow(self):
         """ Backdrive the intake at 0.5 speed """
         self.speed_mode()
@@ -38,7 +33,6 @@ class Intake:
     def backdrive_pin(self):
         """ Used when pinning the ball """
         self.speed_mode()
-        self._speed = 0.3
         self.intake_motor.set(-0.3*Intake.max_speed)
 
     def stop(self):
