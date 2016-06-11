@@ -36,12 +36,6 @@ class Shooter:
     def stop(self):
         self.shooter_motor.set(0.0)
 
-    def on_enabled(self):
-        self.stop()
-
-    def on_disabled(self):
-        self.stop()
-
     def execute(self):
         if not self.initialised:
             self.shooter_motor.setFeedbackDevice(CANTalon.FeedbackDevice.QuadEncoder)
