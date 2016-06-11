@@ -85,4 +85,43 @@ def test_shoot_boulder(control):
     c = StepController(control, _on_step)
     control.run_test(c)
     assert c.step == 40
-    
+
+def test_backdrive_manual():
+    ba = BoulderAutomation()
+    ba.intake = MagicMock()
+    ba.shooter = MagicMock()
+    setup_tunables(ba, "boulder_automation")
+
+    ba.engage("backdrive_manual")
+    ba.execute()
+    assert ba.intake.backdrive_slow.called
+    assert ba.shooter.backdrive_recovery.called
+    ba.done()
+
+def test_toggle_intake_boulder():
+    ba = BoulderAutomation()
+    ba.intake = MagicMock()
+    ba.shooter = MagicMock()
+    setup_tunables(ba, "boulder_automation")
+
+    assert not ba.current_state
+    ba.toggle_intake_boulder()
+    ba.execute()
+    assert ba.current_state
+    ba.toggle_intake_boulder()
+    ba.execute()
+    assert not ba.current_state
+
+def test_toggle_shoot_boulder():
+    ba = BoulderAutomation()
+    ba.intake = MagicMock()
+    ba.shooter = MagicMock()
+    setup_tunables(ba, "boulder_automation")
+
+    assert not ba.current_state
+    ba.toggle_shoot_boulder()
+    ba.execute()
+    assert ba.current_state
+    ba.toggle_shoot_boulder()
+    ba.execute()
+    assert not ba.current_state
