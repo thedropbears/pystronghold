@@ -65,7 +65,7 @@ class ObstacleHighGoal(AutonomousStateMachine):
             self.defeater_motor.set(-0.5)
         self.chassis.distance_pid.setOutputRange(-0.55, 0.55)
         self.chassis.field_displace(self.straight, 0.0)
-        self.engage('breach_defence')
+        self.next_state('breach_defence')
 
     @state(must_finish=True)
     def breach_defence(self):
@@ -78,13 +78,13 @@ class ObstacleHighGoal(AutonomousStateMachine):
                     self.delta_heading)
                 )
             self.defeater_motor.set(0.3)
-            self.engage('spinning')
+            self.next_state('spinning')
 
     @state(must_finish=True)
     def spinning(self):
         if self.chassis.heading_hold_pid.onTarget():
             self.chassis.field_displace(self.delta_x, self.delta_y)
-            self.engage('strafing')
+            self.next_state('strafing')
 
     @state(must_finish=True)
     def strafing(self):
@@ -97,7 +97,7 @@ class ObstacleHighGoal(AutonomousStateMachine):
             self.chassis.range_setpoint = self.chassis.correct_range  # m
             self.chassis.distance_pid.reset()
             self.chassis.distance_pid.enable()
-            self.engage('range_finding')
+            self.next_state('range_finding')
 
     @state(must_finish=True)
     def range_finding(self):
@@ -110,7 +110,7 @@ class ObstacleHighGoal(AutonomousStateMachine):
             self.chassis.distance_pid.reset()
             self.chassis.distance_pid.enable()
             self.shooter.shoot()
-            self.engage('visual_tracking')
+            self.next_state('visual_tracking')
 
     @state(must_finish=True)
     def visual_tracking(self):
