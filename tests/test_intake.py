@@ -7,6 +7,8 @@ def test_control_methods():
     intake = Intake()
     intake.intake_motor = MagicMock()
     intake.intake_motor.set = MagicMock()
+    intake.feeder_motor = MagicMock()
+    intake.feeder_motor.set = MagicMock()
     intake.speed_mode = MagicMock()
     intake.position_mode = MagicMock()
 
@@ -29,6 +31,7 @@ def test_control_methods():
 def test_up_to_speed():
     intake = Intake()
     intake.intake_motor = MagicMock()
+    intake.feeder_motor = MagicMock()
 
     #test setpoint condition
     intake.intake_motor.getClosedLoopError = MagicMock(return_value=0.0)
@@ -51,6 +54,7 @@ def test_up_to_speed():
 def test_ball_detected():
     intake = Intake()
     intake.intake_motor = MagicMock()
+    intake.feeder_motor = MagicMock()
 
     #test error condition
     intake.acceleration = -1.0
@@ -106,6 +110,7 @@ def test_slowing():
 def test_pinned():
     intake = Intake()
     intake.intake_motor = MagicMock()
+    intake.feeder_motor = MagicMock()
 
     # test error condition
     intake.intake_motor.get = MagicMock(return_value=-501)
@@ -133,6 +138,7 @@ def test_modes():
     intake.intake_motor.changeControlMode = MagicMock()
     intake.intake_motor.setPID = MagicMock()
     intake.intake_motor.setPosition = MagicMock()
+    intake.feeder_motor = MagicMock()
 
     #speed mode
     intake.speed_mode()
