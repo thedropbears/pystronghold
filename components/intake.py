@@ -7,6 +7,7 @@ from _collections import deque
 
 class Intake:
     intake_motor = CANTalon
+    feeder_motor = CANTalon
 
     max_speed = 9000.0
 
@@ -24,26 +25,31 @@ class Intake:
         """ Spin the intake at the maximum speed to suck balls in """
         self.speed_mode()
         self.intake_motor.set(0.7*Intake.max_speed)
+        self.feeder_motor.set(-0.45)
 
     def backdrive_slow(self):
         """ Backdrive the intake at 0.5 speed """
         self.speed_mode()
         self.intake_motor.set(-0.5*Intake.max_speed)
+        self.feeder_motor.set(0.2)
 
     def backdrive_pin(self):
         """ Used when pinning the ball """
         self.speed_mode()
         self.intake_motor.set(-0.3*Intake.max_speed)
+        self.feeder_motor.set(0.0)
 
     def stop(self):
         """ Stop the intake """
         self.speed_mode()
         self.intake_motor.set(0.0)
+        self.feeder_motor.set(0.0)
 
     def jam(self):
         """ Jam the ball in the intake """
         self.position_mode()
         self.intake_motor.set(-1000)
+        self.feeder_motor.set(0.0)
 
     def up_to_speed(self):
         """ Is the intake up to speed yet? """

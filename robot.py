@@ -30,6 +30,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
         self.intake_motor = wpilib.CANTalon(14)
+        self.feeder_motor = wpilib.CANTalon(7)
         self.shooter_motor = wpilib.CANTalon(12)
         self.defeater_motor = wpilib.CANTalon(1)
         self.joystick = wpilib.Joystick(0)
