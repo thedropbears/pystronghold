@@ -14,8 +14,8 @@ def findTarget(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     # Define the colours to look for (in HSV)
     # Use values straight from GIMP
-    lower_colour = np.array([80 * 0.5, 70 * 255 / 100, 8 * 255 / 100])
-    upper_colour = np.array([220 * 0.5, 100 * 255 / 100, 63 * 255 / 100])
+    lower_colour = np.array([130 * 0.5, 50 * 255 / 100, 15 * 255 / 100])
+    upper_colour = np.array([180 * 0.5, 100 * 255 / 100, 100 * 255 / 100])
     # Create a mask that filters out only those colours
     mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
     # Errode and dialate the image to get rid of noise
@@ -65,7 +65,7 @@ def findTarget(image):
     # Send the results to NetworkTables
     # TODO!!
 
-    return x, y, w, h, image
+    return x, y, w, h, mask
 
 class NTWrapper:  # pragma: no cover
     def __init__(self):
