@@ -14,14 +14,14 @@ def findTarget(image):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     # Define the colours to look for (in HSV)
     # Use values straight from GIMP
-    lower_colour = np.array([130 * 0.5, 50 * 255 / 100, 15 * 255 / 100])
+    lower_colour = np.array([120 * 0.5, 50 * 255 / 100, 15 * 255 / 100])
     upper_colour = np.array([180 * 0.5, 100 * 255 / 100, 100 * 255 / 100])
     # Create a mask that filters out only those colours
     mask = cv2.inRange(hsv_image, lower_colour, upper_colour)
     # Errode and dialate the image to get rid of noise
     kernel = np.ones((4, 4), np.uint8)
     erosion = cv2.erode(mask, kernel, iterations=1)
-    dilated = cv2.dilate(erosion, kernel, iterations=1)
+    dilated = mask#cv2.dilate(erosion, kernel, iterations=1)
     # Get the information for the contours
     _, contours, __ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # sort the contours into a list
@@ -65,7 +65,7 @@ def findTarget(image):
     # Send the results to NetworkTables
     # TODO!!
 
-    return x, y, w, h, mask
+    return x, y, w, h, image
 
 class NTWrapper:  # pragma: no cover
     def __init__(self):
