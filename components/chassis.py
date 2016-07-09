@@ -1,5 +1,6 @@
 
 import math
+import logging
 
 from wpilib import CANTalon, PIDController
 from wpilib.interfaces import PIDOutput, PIDSource
@@ -98,16 +99,17 @@ class Chassis:
         self.distance_pid_heading = 0.0  # Relative to field
         self.distance_pid_output = BlankPIDOutput()
         # TODO tune the distance PID values
-        self.distance_pid = PIDController(1.0, 0.02, 0.0,
+        self.distance_pid = PIDController(0.75, 0.02, 1.0,
                                           self, self.distance_pid_output)
         self.distance_pid.setAbsoluteTolerance(self.distance_pid_abs_error)
-        self.distance_pid.setToleranceBuffer(5)
+        self.distance_pid.setToleranceBuffer(3)
         self.distance_pid.setContinuous(False)
         self.distance_pid.setInputRange(-5.0, 5.0)
         self.distance_pid.setOutputRange(-0.4, 0.4)
         self.distance_pid.setSetpoint(0.0)
         self.reset_distance_pid = False
         self.pid_counter = 0
+        self.logger = logging.getLogger("chassis")
 
     def on_enable(self):
         self.bno055.resetHeading()
@@ -131,6 +133,7 @@ class Chassis:
 
     def toggle_vision_tracking(self):
         self.track_vision = not self.track_vision
+        self.logger.info("Vision Tracking: " + str(self.track_vision))
         if self.track_vision:
             self.zero_encoders()
             self.distance_pid.setSetpoint(0.0)
@@ -220,12 +223,17 @@ class Chassis:
                             x = 0.5
                         elif x < -0.5:
                             x = -0.5
+                        self.logger.info("X: " + str(x))
                     if self.track_vision and not self.on_vision_target():
+                        self.logger.info("Tracking Vision")
                         y = self.vision.pidGet() * self.vision_scale_factor
-                        if y > self.vision_scale_factor:
-                            y = self.vision_scale_factor
-                        elif y < -self.vision_scale_factor:
-                            y = -self.vision_scale_factor
+                        if y > 0.5:
+                            y = 0.5
+                        elif y < -0.5:
+                            y = -0.5
+                        self.logger.info("Y: " + str(y))
+                    elif self.on_vision_target():
+                        self.track_vision = False
                     self.distance_pid.disable()
                     self.zero_encoders()
                     self.distance_pid_heading = constrain_angle(math.atan2(y, x)+self.bno055.getAngle())
@@ -256,6 +264,8 @@ class Chassis:
             else:
                 self.heading_hold_pid.setSetpoint(self.bno055.getAngle())
                 self.vz = self.inputs[2] * self.inputs[3]  # multiply by throttle
+
+        self.logger.info("Vision: %s Rangefinder: %s Distance: %s Setpoint: %s" % (self.vision.pidGet(), self.range_finder.pidGet(), self.distance, self.distance_pid.getSetpoint()))
 
         if self.lock_wheels:
             for _, params, module in zip(Chassis.module_params.items(),
