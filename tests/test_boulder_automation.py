@@ -6,13 +6,13 @@ class StepController(object):
     '''
         Robot test controller
     '''
-    
+
     def __init__(self, control, on_step):
         '''constructor'''
         self.control = control
         self.step = 0
         self._on_step = on_step
-        
+
     def __call__(self, tm):
         '''Called when a new robot DS packet is received'''
         self.step += 1
@@ -36,16 +36,16 @@ def test_intake_boulder(control):
             assert ba.current_state == "intaking"
         elif step == 3:
             pass
-        elif step <= 19:
+        elif step <= 29:
             assert ba.shooter.backdrive.called
             assert ba.current_state == "intaking_contact"
-        elif step == 20:
+        elif step == 30:
             assert ba.current_state == "pinning"
-        elif step == 21:
+        elif step == 31:
             assert ba.shooter.backdrive.called
             assert ba.intake.backdrive_pin.called
             assert ba.current_state == "pinned"
-        elif step == 22:
+        elif step == 32:
             assert not ba.current_state
         else:
             return False
@@ -53,7 +53,7 @@ def test_intake_boulder(control):
         return True
     c = StepController(control, _on_step)
     control.run_test(c)
-    assert c.step == 23
+    assert c.step == 33
 
 def test_shoot_boulder(control):
     ba = BoulderAutomation()
@@ -61,7 +61,7 @@ def test_shoot_boulder(control):
     ba.shooter = MagicMock()
     ba.shooter.up_to_speed = MagicMock(return_value=True)
     setup_tunables(ba, "boulder_automation")
-    
+
     def _on_step(tm, step):
         if step == 1:
             ba.shoot_boulder()
@@ -81,7 +81,7 @@ def test_shoot_boulder(control):
             return False
         ba.execute()  # Magicbot normally does this for us
         return True
-    
+
     c = StepController(control, _on_step)
     control.run_test(c)
     assert c.step == 40
