@@ -30,7 +30,7 @@ class StrongholdRobot(magicbot.MagicRobot):
         self.logger = logging.getLogger("robot")
         self.sd = NetworkTable.getTable('SmartDashboard')
         self.intake_motor = wpilib.CANTalon(14)
-        self.feeder_motor = wpilib.CANTalon(7)
+        self.feeder_motor = wpilib.CANTalon(5)
         self.shooter_motor = wpilib.CANTalon(12)
         self.defeater_motor = wpilib.CANTalon(1)
         self.joystick = wpilib.Joystick(0)
@@ -182,11 +182,13 @@ class StrongholdRobot(magicbot.MagicRobot):
 
         try:
             if self.debounce(3):
-
-                self.chassis.track_vision = True
-                self.chassis.range_setpoint = self.chassis.correct_range
-                self.chassis.distance_pid.enable()
+                #self.chassis.range_setpoint = self.chassis.correct_range
+                #self.chassis.distance_pid.enable()
                 # self.shooter.start_shoot()
+                self.chassis.range_setpoint = 0.0
+                self.chassis.track_vision = False
+                self.chassis.toggle_range_holding()
+                self.chassis.toggle_vision_tracking()
         except:
             self.onException()
 

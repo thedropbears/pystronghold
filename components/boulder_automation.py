@@ -28,9 +28,10 @@ class BoulderAutomation(StateMachine):
     def shoot_boulder(self):
         self.engage("pre_fire")
 
-    def done(self):
+    def done(self, stop_intake=True):
         super().done()
-        self.intake.stop()
+        if stop_intake:
+            self.intake.stop()
         self.shooter.stop()
 
     @state(first=True)
@@ -48,7 +49,7 @@ class BoulderAutomation(StateMachine):
     @state(must_finish=True)
     def intaking_contact(self, state_tm):
         self.shooter.backdrive()
-        if state_tm > 0.3:
+        if state_tm > 0.5:
             self.next_state("pinning")
 
     @state(must_finish=True)
@@ -63,7 +64,7 @@ class BoulderAutomation(StateMachine):
     def pinned(self):
         self.shooter.stop()
         if self.intake.pinned():
-            self.done()
+            self.done(stop_intake=False)
             self.intake.write_log = True
 
     @state(must_finish=True)

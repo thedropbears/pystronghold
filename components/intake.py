@@ -31,7 +31,7 @@ class Intake:
         """ Backdrive the intake at 0.5 speed """
         self.speed_mode()
         self.intake_motor.set(-0.5*Intake.max_speed)
-        self.feeder_motor.set(0.2)
+        self.feeder_motor.set(0.7)
 
     def backdrive_pin(self):
         """ Used when pinning the ball """
